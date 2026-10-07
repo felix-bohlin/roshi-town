@@ -38,7 +38,17 @@ import { bathhouse, fishmarket, inn, nagaya, samurai, shipwright, shop, smithy, 
 
 export type { BuildingArt } from './kit'
 
+const shared = new Map<string, BuildingArt>()
+
 export function buildingArt(b: Building): BuildingArt {
+  if (b.style === undefined) return drawBuilding(b)
+  const key = `${b.kind}|${b.variant ?? ''}|${b.w}x${b.h}|${b.door.x - b.x}|${b.style}`
+  let art = shared.get(key)
+  if (!art) shared.set(key, (art = drawBuilding(b)))
+  return art
+}
+
+function drawBuilding(b: Building): BuildingArt {
   switch (b.kind) {
     case 'minka':
     case 'minkaOld':
@@ -146,30 +156,66 @@ function minka(b: Building, old: boolean): BuildingArt {
   return finish(img, { windows, lamps: [], chimney: { x: cx, y: top - 4 } })
 }
 
+/**
+ * A townhouse. Generated ones come in styles: 0 plaster upper floor, 1 dark board upper floor with a
+ * paper lantern by the door, 2 a single storey with bamboo blinds, 3 plaster with flower boxes.
+ */
 function machiya(b: Building): BuildingArt {
-  const { W, H, doorX, ctx, img } = frame(b, 16)
+  const style = b.style ?? 0
+  const low = style === 2
+  const { W, H, doorX, ctx, img } = frame(b, low ? 4 : 16)
   const windows: Rect[] = []
-  const roofBottom = 38
-  // Upper floor: plaster with mushiko slit window.
-  px(ctx, PAD + 2, roofBottom, W - PAD * 2 - 4, 18, PLASTER)
-  px(ctx, PAD + 2, roofBottom, W - PAD * 2 - 4, 2, PLASTER_D)
-  const mx = Math.round(W / 2) - 16
-  px(ctx, mx, roofBottom + 5, 32, 9, '#5a5248')
-  for (let i = mx + 1; i < mx + 31; i += 3) px(ctx, i, roofBottom + 6, 2, 7, '#2a2420')
-  windows.push({ x: mx + 1, y: roofBottom + 6, w: 30, h: 7 })
-  // Little eave over the ground floor.
-  tileRoof(ctx, 0, W - 1, roofBottom + 20, roofBottom + 26, 2)
-  // Ground floor: red-brown koshi lattice with the door.
-  const gTop = roofBottom + 27
+  const lamps: BuildingArt['lamps'] = []
+  const roofBottom = low ? 26 : 38
+  if (!low) {
+    // Upper floor: plaster (or boards) with a mushiko slit window.
+    if (style === 1) planks(ctx, PAD + 2, roofBottom, W - PAD * 2 - 4, 18, '#4a3626', '#33241a')
+    else {
+      px(ctx, PAD + 2, roofBottom, W - PAD * 2 - 4, 18, PLASTER)
+      px(ctx, PAD + 2, roofBottom, W - PAD * 2 - 4, 2, PLASTER_D)
+    }
+    const mx = Math.round(W / 2) - 16
+    px(ctx, mx, roofBottom + 5, 32, 9, '#5a5248')
+    for (let i = mx + 1; i < mx + 31; i += 3) px(ctx, i, roofBottom + 6, 2, 7, '#2a2420')
+    windows.push({ x: mx + 1, y: roofBottom + 6, w: 30, h: 7 })
+    if (style === 3)
+      for (const x of [mx - 1, mx + 25]) {
+        px(ctx, x, roofBottom + 14, 8, 3, '#5a3a22')
+        for (let k = 0; k < 4; k++) dot(ctx, x + 1 + k * 2, roofBottom + 13, ['#d06a8a', '#e0c050', '#8a9ad8', '#e8e2d2'][k])
+      }
+    // Little eave over the ground floor.
+    tileRoof(ctx, 0, W - 1, roofBottom + 20, roofBottom + 26, 2)
+  }
+  // Ground floor: koshi lattice (or bamboo blinds) with the door.
+  const gTop = low ? roofBottom + 1 : roofBottom + 27
   const gBottom = H - 4
-  windows.push(lattice(ctx, PAD + 2, gTop, W - PAD * 2 - 4, gBottom - gTop, '#5a2f22', '#2a1a14'))
+  if (low) {
+    px(ctx, PAD + 2, gTop, W - PAD * 2 - 4, gBottom - gTop, '#3a2a1e')
+    const blind = (x: number, w: number) => {
+      px(ctx, x, gTop + 2, w, gBottom - gTop - 6, '#c8a860')
+      for (let y = gTop + 3; y < gBottom - 4; y += 2) px(ctx, x, y, w, 1, '#a68848')
+      windows.push({ x, y: gTop + 2, w, h: gBottom - gTop - 6 })
+    }
+    blind(PAD + 4, doorX - 9 - PAD - 4)
+    blind(doorX + 9, W - PAD - 4 - doorX - 9)
+  } else windows.push(lattice(ctx, PAD + 2, gTop, W - PAD * 2 - 4, gBottom - gTop, style === 1 ? '#3a2418' : '#5a2f22', '#2a1a14'))
   px(ctx, doorX - 7, gTop, 14, gBottom - gTop, '#1e1612')
-  const norenCol = b.variant === 'doctor' ? '#3a6a4a' : b.variant === 'temple' ? '#6a4a2a' : '#2f3f73'
+  const norenCol =
+    b.variant === 'doctor' ? '#3a6a4a' : b.variant === 'temple' ? '#6a4a2a' : (['#2f3f73', '#a5502a', '#4a6a3a', '#7a3a5a'][style % 4] ?? '#2f3f73')
   noren(ctx, doorX, gTop, 14, 9, norenCol, '#f4f1ea')
+  if (style === 1) {
+    chochin(ctx, doorX + 11, gTop + 1)
+    lamps.push({ x: doorX + 11, y: gTop + 5, r: 26, color: '#ff9a50', hours: [17 * 60 + 30, 23 * 60] })
+  }
+  if (low) {
+    // A potted pine by the door.
+    px(ctx, doorX - 13, gBottom - 4, 4, 4, '#6a4a32')
+    ellipse(ctx, doorX - 11, gBottom - 7, 4, 3, '#3a5a2e')
+  }
   for (const x of [PAD + 1, W - PAD - 4]) post(ctx, x, roofBottom, gBottom - roofBottom)
   stoneBase(ctx, PAD, H - 4, W - PAD * 2, 4)
-  tileRoof(ctx, 0, W - 1, 10, roofBottom, 12)
-  return finish(img, { windows, lamps: [] })
+  tileRoof(ctx, 0, W - 1, low ? 4 : 10, roofBottom, low ? 10 : 12)
+  return finish(img, { windows, lamps })
 }
 
 function teahouse(b: Building): BuildingArt {

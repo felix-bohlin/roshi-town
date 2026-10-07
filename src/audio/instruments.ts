@@ -2,14 +2,14 @@
 
 import type { Graph } from './engine'
 
-/** Miyako-bushi (in) scale on D: D Eb G A Bb — the classic koto sakura mode. */
-const IN_SCALE = [0, 1, 5, 7, 8]
+/** Yō scale on D: D E G A B — the bright pentatonic of Japanese folk song (min'yō). */
+const YO_SCALE = [0, 2, 5, 7, 9]
 const ROOT_HZ = 146.83 // D3
 
 export function scaleHz(degree: number, rootHz = ROOT_HZ): number {
-  const n = IN_SCALE.length
+  const n = YO_SCALE.length
   const octave = Math.floor(degree / n)
-  const step = IN_SCALE[((degree % n) + n) % n]
+  const step = YO_SCALE[((degree % n) + n) % n]
   return rootHz * Math.pow(2, octave + step / 12)
 }
 
@@ -149,12 +149,12 @@ export function drone(g: Graph, bus: AudioNode, rootHz = ROOT_HZ / 2): Drone {
   lfo.connect(lfoDepth).connect(lp.frequency)
   lfo.start(now)
 
-  const oscs = [rootHz, rootHz * 1.5, rootHz * 2.003].map((hz, i) => {
+  const oscs = [rootHz * 2, rootHz * 3, rootHz * 4.004].map((hz, i) => {
     const o = ctx.createOscillator()
-    o.type = i === 0 ? 'sawtooth' : 'triangle'
+    o.type = i === 0 ? 'triangle' : 'sine'
     o.frequency.value = hz
     const a = ctx.createGain()
-    a.gain.value = i === 0 ? 0.08 : 0.12
+    a.gain.value = i === 0 ? 0.1 : 0.06
     o.connect(a).connect(lp)
     o.start(now)
     return o

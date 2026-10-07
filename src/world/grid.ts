@@ -63,7 +63,7 @@ function npcCost(world: World, grid: Grid): (i: number) => number {
 }
 
 export function findPath(world: World, grid: Grid, from: Pt, to: Pt): Pt[] | null {
-  const path = astar(world.w, world.h, npcCost(world, grid), idx(from.x, from.y), idx(to.x, to.y), 40000)
+  const path = astar(world.w, world.h, npcCost(world, grid), idx(from.x, from.y), idx(to.x, to.y), 150000)
   return path ? path.map((i) => ({ x: i % world.w, y: (i / world.w) | 0 })) : null
 }
 

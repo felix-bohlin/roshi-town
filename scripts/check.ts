@@ -3,7 +3,7 @@
 
 import { CAST } from '../src/sim/cast'
 import { makeExtras } from '../src/sim/extras'
-import { areaTiles, findPath, makeGrid } from '../src/world/grid'
+import { areaTiles, makeGrid } from '../src/world/grid'
 import { idx, propTiles, T } from '../src/world/layout'
 import { buildWorld } from '../src/world/town'
 
@@ -74,9 +74,32 @@ for (const p of world.props) {
   }
 }
 
-// Every door and place walkable and reachable from the town square.
+// Every door and place walkable and reachable from the town square (one flood fill over the tiles
+// villagers can walk on).
 const hub = world.places.teaCounter
-const unreachable = (p: { x: number; y: number }) => !findPath(world, grid, hub, p)
+const reach = new Uint8Array(world.w * world.h)
+{
+  const queue = [idx(hub.x, hub.y)]
+  reach[queue[0]] = 1
+  while (queue.length) {
+    const i = queue.pop()!
+    const x = i % world.w
+    const y = (i / world.w) | 0
+    for (const [nx, ny] of [
+      [x + 1, y],
+      [x - 1, y],
+      [x, y + 1],
+      [x, y - 1],
+    ]) {
+      if (nx < 0 || ny < 0 || nx >= world.w || ny >= world.h) continue
+      const j = idx(nx, ny)
+      if (reach[j] || grid.solidNpc[j]) continue
+      reach[j] = 1
+      queue.push(j)
+    }
+  }
+}
+const unreachable = (p: { x: number; y: number }) => !reach[idx(p.x, p.y)]
 for (const [name, p] of Object.entries(world.places)) {
   if (name.startsWith('door:tower')) continue
   if (grid.solidNpc[idx(p.x, p.y)]) errors.push(`place ${name} (${p.x},${p.y}) is solid`)
@@ -90,7 +113,8 @@ for (const [name, a] of Object.entries(world.areas)) {
 }
 
 // Every schedule target exists.
-for (const v of [...CAST, ...makeExtras()]) {
+const extras = makeExtras(world)
+for (const v of [...CAST, ...extras]) {
   if (!world.places[v.home]) errors.push(`${v.id}: home ${v.home} is not a place`)
   for (const e of v.schedule) {
     const d = e.doing
@@ -100,7 +124,7 @@ for (const v of [...CAST, ...makeExtras()]) {
   }
 }
 
-console.log(`\n${world.props.length} props, ${world.buildings.length} buildings, ${CAST.length} villagers`)
+console.log(`\n${world.props.length} props, ${world.buildings.length} buildings, ${CAST.length} villagers + ${extras.length} passers-by`)
 if (errors.length) {
   console.error(`\n${errors.length} problem(s):\n  ${errors.slice(0, 60).join('\n  ')}`)
   process.exit(1)

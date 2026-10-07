@@ -13,6 +13,8 @@ interface Plan {
   rain: { from: number; to: number; level: number }[]
   /** Dawn mist strength (0–1). */
   mist: number
+  /** Cloud cover on a dry day: sunny (~0.1) to overcast (~0.6). */
+  overcast: number
 }
 
 interface Drop {
@@ -48,7 +50,7 @@ export class Weather {
     const hit = this.plans.get(day)
     if (hit) return hit
     let p: Plan
-    if (day === 1) p = { rain: [{ from: 11 * 60, to: 15 * 60 + 30, level: 0.75 }], mist: 0.85 }
+    if (day === 1) p = { rain: [{ from: 14 * 60 + 30, to: 16 * 60, level: 0.55 }], mist: 0.6, overcast: 0.08 }
     else {
       const r = rng(day * 977 + 13)
       const rain: Plan['rain'] = []
@@ -57,7 +59,8 @@ export class Weather {
         const from = (5 + r() * 15) * 60
         rain.push({ from, to: from + (1.5 + r() * 5) * 60, level: 0.35 + r() * 0.65 })
       }
-      p = { rain, mist: r() < 0.7 ? 0.5 + r() * 0.5 : 0.15 }
+      const sky = r()
+      p = { rain, mist: r() < 0.6 ? 0.4 + r() * 0.5 : 0.15, overcast: sky < 0.45 ? 0.05 + r() * 0.15 : sky < 0.85 ? 0.3 : 0.6 }
     }
     this.plans.set(day, p)
     return p
@@ -86,7 +89,7 @@ export class Weather {
     const dawn = Math.max(0, 1 - Math.abs(m - 330) / 200)
     const late = m > 1320 || m < 120 ? 0.25 : 0
     const fog = Math.max(p.mist * dawn, late * p.mist, rain * 0.2)
-    const cloud = Math.min(1, 0.35 + rain * 1.2 + fog * 0.3)
+    const cloud = Math.min(1, p.overcast + rain * 1.2 + fog * 0.3)
     return { rain, fog, cloud }
   }
 
@@ -124,9 +127,10 @@ export class Weather {
   /** CSS colour grade for the world layer. */
   grade(): string {
     const q = (v: number) => Math.round(v * 50) / 50
-    const sat = q(0.66 - this.cloud * 0.14)
-    const bri = q(0.98 - this.rain * 0.06)
-    return `saturate(${sat}) contrast(1.12) brightness(${bri}) sepia(0.14)`
+    // Clear days keep most of their colour; rain washes it out.
+    const sat = q(0.92 - this.cloud * 0.2 - this.rain * 0.08)
+    const bri = q(1 - this.rain * 0.06)
+    return `saturate(${sat}) contrast(1.06) brightness(${bri}) sepia(0.08)`
   }
 
   /** Drifting mist, drawn over the world before the light map. */

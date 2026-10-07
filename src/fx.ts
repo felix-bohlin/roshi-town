@@ -54,14 +54,14 @@ export class Fx {
         )
         if (wet) near.push({ x, y })
       }
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 320; i++) {
       const t = near[Math.floor(this.r() * near.length)]
       const x = t.x * TILE + this.r() * TILE
       const y = t.y * TILE + this.r() * TILE
       this.fireflies.push({ x, y, hx: x, hy: y, phase: this.r() * 10, speed: 0.4 + this.r() * 0.6 })
     }
     const flowers = world.props.filter((p) => p.kind === 'hydrangea' || p.kind === 'iris')
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 60; i++) {
       const p = flowers[Math.floor(this.r() * flowers.length)]
       const x = p.x * TILE + 8
       const y = p.y * TILE

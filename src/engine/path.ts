@@ -1,26 +1,40 @@
 // A* on the tile grid, 4-connected. `cost(i)` returns the cost of stepping onto tile i
 // (Infinity = blocked). Villagers prefer roads because grass and fields cost more.
+//
+// The search buffers are shared between calls and reset lazily with a generation stamp, so a
+// path across a big map doesn't allocate a megabyte of arrays every time somebody goes to lunch.
 
-export function astar(
-  w: number,
-  h: number,
-  cost: (i: number) => number,
-  start: number,
-  goal: number,
-  maxNodes = 6000,
-): number[] | null {
+let cap = 0
+let gScore = new Float64Array(0)
+let from = new Int32Array(0)
+let seen = new Uint32Array(0)
+let closed = new Uint32Array(0)
+let gen = 0
+const heap: number[] = []
+const fOf: number[] = []
+
+/** Slightly greedy: paths stay near-shortest and the search expands far fewer tiles. */
+const HEURISTIC_WEIGHT = 1.15
+
+export function astar(w: number, h: number, cost: (i: number) => number, start: number, goal: number, maxNodes = 6000): number[] | null {
   if (start === goal) return [goal]
   const n = w * h
-  const g = new Float64Array(n).fill(Infinity)
-  const from = new Int32Array(n).fill(-1)
-  const closed = new Uint8Array(n)
+  if (n > cap) {
+    cap = n
+    gScore = new Float64Array(n)
+    from = new Int32Array(n)
+    seen = new Uint32Array(n)
+    closed = new Uint32Array(n)
+    gen = 0
+  }
+  gen++
   const gx = goal % w
   const gy = (goal / w) | 0
-  const heur = (i: number) => Math.abs((i % w) - gx) + Math.abs(((i / w) | 0) - gy)
+  const heur = (i: number) => HEURISTIC_WEIGHT * (Math.abs((i % w) - gx) + Math.abs(((i / w) | 0) - gy))
+  const gOf = (i: number) => (seen[i] === gen ? gScore[i] : Infinity)
 
-  // Binary heap of [f, i].
-  const heap: number[] = []
-  const fOf: number[] = []
+  heap.length = 0
+  fOf.length = 0
   const push = (i: number, f: number) => {
     heap.push(i)
     fOf.push(f)
@@ -56,14 +70,20 @@ export function astar(
     return top
   }
 
-  g[start] = 0
+  seen[start] = gen
+  gScore[start] = 0
+  from[start] = -1
   push(start, heur(start))
   let expanded = 0
+  let found = false
   while (heap.length) {
     const cur = pop()
-    if (closed[cur]) continue
-    if (cur === goal) break
-    closed[cur] = 1
+    if (closed[cur] === gen) continue
+    if (cur === goal) {
+      found = true
+      break
+    }
+    closed[cur] = gen
     if (++expanded > maxNodes) return null
     const cx = cur % w
     const cy = (cur / w) | 0
@@ -72,18 +92,19 @@ export function astar(
       const ny = cy + (k === 2 ? 1 : k === 3 ? -1 : 0)
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
       const ni = ny * w + nx
-      if (closed[ni]) continue
+      if (closed[ni] === gen) continue
       const c = ni === goal ? Math.min(cost(ni), 1) : cost(ni)
       if (!isFinite(c)) continue
-      const ng = g[cur] + c
-      if (ng < g[ni]) {
-        g[ni] = ng
+      const ng = gScore[cur] + c
+      if (ng < gOf(ni)) {
+        seen[ni] = gen
+        gScore[ni] = ng
         from[ni] = cur
         push(ni, ng + heur(ni))
       }
     }
   }
-  if (from[goal] < 0) return null
+  if (!found) return null
   const out: number[] = []
   for (let i = goal; i !== start; i = from[i]) out.push(i)
   out.reverse()

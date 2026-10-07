@@ -27,9 +27,11 @@ export function propArt(p: Prop, seed: number, fenceMask = 0): PropArt | null {
       ? `tree:${p.variant}:${seed % 3}`
       : p.kind === 'fence' || p.kind === 'wall'
         ? `${p.kind}:${fenceMask}`
-        : ['bamboo', 'bush', 'hydrangea', 'iris', 'reeds', 'rock'].includes(p.kind)
-          ? `${p.kind}:${seed % 4}`
-          : `${p.kind}:${p.variant ?? ''}`
+        : p.kind === 'torii'
+          ? `torii:${p.w ?? 4}`
+          : ['bamboo', 'bush', 'hydrangea', 'iris', 'reeds', 'rock'].includes(p.kind)
+            ? `${p.kind}:${seed % 4}`
+            : `${p.kind}:${p.variant ?? ''}`
   const hit = cache.get(key)
   if (hit) return hit
   const art = make(p, seed, fenceMask)
@@ -88,7 +90,7 @@ function make(p: Prop, seed: number, fenceMask: number): PropArt | null {
     case 'trough':
       return trough()
     case 'torii':
-      return torii()
+      return torii(p.w ?? 4)
     case 'wall':
       return wall(fenceMask)
     case 'ship':
@@ -523,9 +525,16 @@ function trough(): PropArt {
   return { sprite: { img, ax: 9, ay: 10 } }
 }
 
-function torii(): PropArt {
-  const W = 76
-  const H = 60
+/** A torii as wide as its footprint: pillars on the first and last tile. Big ones are taller too. */
+function torii(wTiles: number): PropArt {
+  const span = (wTiles - 1) * 16
+  const big = wTiles >= 8
+  const pw = big ? 7 : 5
+  const W = span + pw + 26
+  const ph = 34 + Math.min(44, wTiles * 3)
+  const H = ph + 14
+  const lx = Math.round(W / 2 - span / 2 - pw / 2)
+  const rx = lx + span
   const img = build(
     W,
     H,
@@ -533,32 +542,36 @@ function torii(): PropArt {
       const red = '#d23c2a'
       const redD = '#a32a1e'
       const redL = '#e8604a'
-      // Pillars (slightly leaning in), black feet.
-      for (const x of [12, 59]) {
-        px(ctx, x, 14, 5, 42, red)
-        px(ctx, x, 14, 1, 42, redL)
-        px(ctx, x + 4, 14, 1, 42, redD)
-        px(ctx, x - 1, 52, 7, 5, '#2a2233')
+      // Pillars, black feet.
+      for (const x of [lx, rx]) {
+        px(ctx, x, 14, pw, ph - 4, red)
+        px(ctx, x, 14, 1, ph - 4, redL)
+        px(ctx, x + pw - 1, 14, 1, ph - 4, redD)
+        px(ctx, x - 1, ph + 6, pw + 2, 5, '#2a2233')
       }
       // Nuki (lower crossbeam).
-      px(ctx, 6, 20, 64, 4, red)
-      px(ctx, 6, 20, 64, 1, redL)
-      px(ctx, 6, 23, 64, 1, redD)
+      const ny = big ? 24 : 20
+      px(ctx, lx - 6, ny, span + pw + 12, big ? 5 : 4, red)
+      px(ctx, lx - 6, ny, span + pw + 12, 1, redL)
+      px(ctx, lx - 6, ny + (big ? 4 : 3), span + pw + 12, 1, redD)
       // Shimaki + kasagi (top beams), the kasagi black with upswept ends.
-      px(ctx, 4, 9, 68, 4, red)
-      px(ctx, 4, 12, 68, 1, redD)
-      px(ctx, 1, 4, 74, 5, '#2a2233')
-      px(ctx, 1, 4, 74, 1, '#4a4058')
+      px(ctx, 4, 9, W - 8, 4, red)
+      px(ctx, 4, 12, W - 8, 1, redD)
+      px(ctx, 1, 4, W - 2, 5, '#2a2233')
+      px(ctx, 1, 4, W - 2, 1, '#4a4058')
       px(ctx, 0, 2, 4, 3, '#2a2233')
-      px(ctx, 72, 2, 4, 3, '#2a2233')
+      px(ctx, W - 4, 2, 4, 3, '#2a2233')
       // Plaque.
-      px(ctx, 34, 12, 8, 9, '#2a2233')
-      px(ctx, 35, 13, 6, 7, '#e0b13c')
-      px(ctx, 37, 14, 2, 5, '#2a2233')
+      const cx = Math.round(W / 2)
+      if (wTiles >= 3) {
+        px(ctx, cx - 4, 12, 8, ny - 11, '#2a2233')
+        px(ctx, cx - 3, 13, 6, ny - 13, '#e0b13c')
+        px(ctx, cx - 1, 14, 2, ny - 15, '#2a2233')
+      }
     },
-    { outline: INK, shadow: { cx: 38, cy: 56, rx: 30, ry: 2, alpha: 0.18 } },
+    { outline: INK, shadow: { cx: Math.round(W / 2), cy: ph + 10, rx: Math.round(W / 2) - 8, ry: 2, alpha: 0.18 } },
   )
-  return { sprite: { img, ax: 38, ay: 56 } }
+  return { sprite: { img, ax: Math.round(W / 2), ay: ph + 10 } }
 }
 
 /** Jinbei's market mat: fans, combs, a bolt of cloth and a "rare" tea bowl. */

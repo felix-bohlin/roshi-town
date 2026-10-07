@@ -2,8 +2,8 @@
 // scripts/check.ts can validate the town in node.
 
 export const TILE = 16
-const MAP_W = 144
-const MAP_H = 112
+const MAP_W = 288
+const MAP_H = 224
 
 export const T = {
   Grass: 0,
@@ -47,7 +47,7 @@ export interface Area {
   only?: Tile[]
 }
 
-type BuildingKind =
+export type BuildingKind =
   | 'minka'
   | 'minkaOld'
   | 'cottage'
@@ -100,6 +100,8 @@ export interface Building {
   text: string | string[]
   /** For houses nobody simulated lives in: [from, to) minutes when the windows glow. */
   litHours?: [number, number][]
+  /** Generated townhouses: buildings with the same kind, variant, size and style share one image. */
+  style?: number
 }
 
 export type TreeKind = 'pine' | 'blackpine' | 'cedar' | 'broad' | 'maple' | 'willow' | 'persimmon' | 'sacred' | 'ginkgo'
@@ -187,6 +189,10 @@ export interface World {
   districts: District[]
   /** Where the turtle starts. */
   start: Pt
+  /** Generated places passers-by wander between, by neighbourhood (town, crafts, harbour, …). */
+  spots: Record<string, string[]>
+  /** Doors of generated houses people live in, by neighbourhood. */
+  homes: Record<string, string[]>
 }
 
 export const idx = (x: number, y: number) => y * MAP_W + x
@@ -216,6 +222,8 @@ export class Builder {
   readonly places: Record<string, Place> = {}
   readonly areas: Record<string, Area> = {}
   readonly districts: District[] = []
+  readonly spots: Record<string, string[]> = {}
+  readonly homes: Record<string, string[]> = {}
   /** Tiles taken by buildings or solid props (so scattered nature stays out of the way). */
   readonly taken = new Uint8Array(MAP_W * MAP_H)
 
@@ -260,6 +268,17 @@ export class Builder {
 
   place(name: string, x: number, y: number, face?: Dir): void {
     this.places[name] = { x, y, face }
+  }
+
+  /** A place passers-by of `group` wander to. */
+  spot(group: string, name: string, x: number, y: number, face?: Dir): void {
+    this.place(name, x, y, face)
+    ;(this.spots[group] ??= []).push(name)
+  }
+
+  /** Someone of `group` could live behind this door. */
+  home(group: string, b: Building): void {
+    ;(this.homes[group] ??= []).push(`door:${b.id}`)
   }
 
   area(name: string, x: number, y: number, w: number, h: number, only?: Tile[]): void {

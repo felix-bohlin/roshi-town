@@ -882,9 +882,10 @@ export function spawnAnimals(g: Game): Animal[] {
     out.push(gull)
   }
   // Deer at the temple. They bow.
-  const grounds = g.world.areas.templeGrounds
-  for (let i = 0; i < 4; i++) {
-    const d = new Animal('deer', (grounds.x + 4 + i * 9) * TILE, (grounds.y + 9 + (i % 2) * 2) * TILE, 8000 + i, 'Temple deer', [
+  const grounds = areaTiles(g.world, g.grid, g.world.areas.templeGrounds)
+  for (let i = 0; i < 6; i++) {
+    const at = tileFeet(grounds[Math.floor(((i + 0.5) / 6) * grounds.length)])
+    const d = new Animal('deer', at.x, at.y, 8000 + i, 'Temple deer', [
       'A temple deer. It bows to you. You bow back. Your shell clacks. The deer seems satisfied.',
       'The deer sniffs you for rice crackers. You have none. It bows anyway. Polite deer.',
     ])
@@ -894,14 +895,17 @@ export function spawnAnimals(g: Game): Animal[] {
   }
   // Frogs on the paddy levees and by the temple pond.
   const frogSpots: Pt[] = [
-    { x: 8, y: 36 },
-    { x: 14, y: 40 },
-    { x: 8, y: 44 },
-    { x: 13, y: 37 },
-    { x: 19, y: 42 },
-    { x: 2, y: 47 },
-    { x: 44, y: 6 },
-    { x: 54, y: 4 },
+    { x: 8, y: 66 },
+    { x: 14, y: 75 },
+    { x: 20, y: 86 },
+    { x: 8, y: 90 },
+    { x: 14, y: 98 },
+    { x: 20, y: 103 },
+    { x: 2, y: 94 },
+    { x: 100, y: 6 },
+    { x: 114, y: 5 },
+    { x: 123, y: 34 },
+    { x: 130, y: 34 },
   ]
   frogSpots.forEach((t, i) => {
     const f = tileFeet(t)

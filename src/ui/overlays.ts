@@ -244,9 +244,9 @@ export function drawTitle(screen: Screen, roshi: HTMLCanvasElement, t: number): 
   ctx.font = `${u(14)}px ${FONT_BODY}`
   ctx.fillStyle = PALETTE.washi
   if (narrow) {
-    ctx.fillText('the port town of Kumoi, Ise Province', cx, ty + u(26))
+    ctx.fillText('the port city of Kumoi, Ise Province', cx, ty + u(26))
     ctx.fillText('early summer, 1582 · a town prototype', cx, ty + u(44))
-  } else ctx.fillText('the port town of Kumoi, Ise Province · early summer, 1582 · a town prototype', cx, ty + u(28))
+  } else ctx.fillText('the port city of Kumoi, Ise Province · early summer, 1582 · a town prototype', cx, ty + u(28))
   // Roshi with his speech bubble.
   const bob = Math.round(Math.sin(t * 2) * u(2))
   const rx = narrow ? cx - rw / 2 : cx - u(250)
@@ -300,8 +300,8 @@ const HELP: [string, string][] = [
 ]
 
 const TRY = [
-  'Swim north from the island: the harbour is right there. Turtles swim faster than they walk.',
-  'Climb the 108 steps to the temple at dawn: the bell, the conch, and deer that bow.',
+  'Swim from the island to the harbour or the east beach. Turtles swim faster than they walk.',
+  'Climb the thousand steps to Kōun-ji: the torii tunnel, the waterfall, the halfway teahouse, and deer that bow at the top.',
   'Follow Gonbei to the paddies outside the West Gate and watch the crows undo his work.',
   'Hide in your shell next to someone. Kiyo is not fooled.',
   'Swim the moat all the way round the town walls.',
@@ -309,6 +309,8 @@ const TRY = [
   'Every third day is market day: Jinbei walks in through the West Gate.',
   'Read the contracts on the notice board in the square. The pay is terrible.',
   'Walk out of the West Gate to the refugee camp. Nobody there laughs at turtles.',
+  'At dusk, walk the Willow Canal. Lanterns, shamisen, and a gambler who wants to rub your shell.',
+  'Sit in the market on the town square at noon and count the stallholders shouting at each other.',
   'Press R for a storm and stand in the square. Count the seconds after the flash.',
 ]
 
@@ -367,6 +369,8 @@ export interface MapMarker {
 export function drawMap(
   screen: Screen,
   snapshot: HTMLCanvasElement,
+  /** World width in pixels (markers are in world pixels). */
+  worldW: number,
   markers: MapMarker[],
   player: { x: number; y: number },
   clock: Clock,
@@ -388,6 +392,7 @@ export function drawMap(
   ctx.imageSmoothingEnabled = true
   ctx.drawImage(snapshot, mx, my, mw, mh)
   ctx.imageSmoothingEnabled = false
+  const wk = mw / worldW
   ctx.strokeStyle = PALETTE.gold
   ctx.lineWidth = u(2)
   ctx.strokeRect(mx, my, mw, mh)
@@ -396,8 +401,8 @@ export function drawMap(
   ctx.font = `${u(11)}px ${FONT_BODY}`
   for (const m of markers) {
     if (m.inside) continue
-    const x = mx + m.x * k
-    const y = my + m.y * k
+    const x = mx + m.x * wk
+    const y = my + m.y * wk
     ctx.beginPath()
     ctx.arc(x, y, u(4), 0, Math.PI * 2)
     ctx.fillStyle = m.color
@@ -413,8 +418,8 @@ export function drawMap(
     }
   }
   // The turtle, pulsing.
-  const px = mx + player.x * k
-  const py = my + player.y * k
+  const px = mx + player.x * wk
+  const py = my + player.y * wk
   ctx.beginPath()
   ctx.arc(px, py, u(6 + Math.sin(t * 5) * 1.5), 0, Math.PI * 2)
   ctx.fillStyle = '#86a650'

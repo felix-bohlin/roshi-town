@@ -108,7 +108,9 @@ export class Villager {
     }
     const d = (this.entry ?? e).doing
     this.status = (this.entry ?? e).label
-    const speed = this.spec.speed * simDt
+    // Everybody slows down on the temple stairs.
+    const t = this.tile
+    const speed = this.spec.speed * simDt * (g.world.tiles[idx(t.x, t.y)] === T.Stairs ? 0.6 : 1)
 
     if (d.kind === 'inside') {
       if (this.inside) {

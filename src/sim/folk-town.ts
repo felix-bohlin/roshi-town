@@ -467,7 +467,7 @@ export const TOWN: VillagerSpec[] = [
     ],
     talk: [
       'A Japanese house is held together with no nails. Just joints, skill, and prayer. Mostly prayer.',
-      'The temple stairs have 108 steps. I’ve fixed 107. Number 52 hates me.',
+      'The temple stairs have 1,082 steps. I’ve fixed 1,081. Number 541 hates me.',
       'If anything in this town creaks, I’ve fixed it. If it still creaks, it’s Rihei’s.',
     ],
     turtle: ['A turtle! A natural roof. I respect the craftsmanship.'],

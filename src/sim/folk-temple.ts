@@ -1,4 +1,4 @@
-// The temple on the hill, and the old man on the island.
+// The temple on the mountain, and the old man on the island.
 
 import { asleep, home, spot, wander, work, type VillagerSpec } from './types'
 
@@ -18,7 +18,7 @@ export const TEMPLE: VillagerSpec[] = [
       { at: '09:00', label: 'begging alms in the square', doing: spot('notice', 'alms') },
       { at: '12:00', label: '"meditating" (napping) at the shrine', doing: spot('inariFront', 'nap') },
       { at: '14:30', label: 'blessing the fishing boats', doing: spot('pierMidFoot', 'chant') },
-      { at: '17:00', label: 'climbing back up the hill', doing: spot('stairsMid', 'stand') },
+      { at: '17:00', label: 'climbing back up the mountain', doing: spot('stairsMid', 'stand') },
       home('18:00', 'in his hut'),
       asleep('20:30'),
     ],
@@ -36,7 +36,7 @@ export const TEMPLE: VillagerSpec[] = [
       nap: ['Zzz… I’m meditating… zzz…'],
       alms: ['Alms for a humble monk? Rice? Coin? Sake?'],
       meditate: ['The pagoda sways. The mind does not. The stomach does.'],
-      stand: ['108 steps. 108 worldly desires. 109 if you count wanting to stop.'],
+      stand: ['1,082 steps. 108 worldly desires. The other 974 are just stairs.'],
     },
   },
   {
@@ -65,7 +65,7 @@ export const TEMPLE: VillagerSpec[] = [
       'Lord Nobunaga burned Mount Hiei. Monks remember. But we are told to forgive. We are working on it.',
       'Kakuzen naps at noon and calls it meditation. I nap at one and call it the afternoon sutra.',
     ],
-    turtle: ['Welcome, small pilgrim. You climbed 108 steps. Or swam. Either is an achievement.'],
+    turtle: ['Welcome, small pilgrim. You climbed one thousand and eighty-two steps on legs that size. Sit. Breathe. The Buddha can wait.'],
     shell: ['The turtle hides in its shell; the monk hides in his robes. We are both very calm.'],
     barks: { chant: ['Namu Amida Butsu…', 'Form is emptiness… emptiness is form…'], tend: ['Rest well.', 'Fresh flowers today.'], meditate: ['Hmm.'] },
   },
@@ -80,16 +80,16 @@ export const TEMPLE: VillagerSpec[] = [
     schedule: [
       asleep(),
       { at: '05:50', label: 'ringing the great bell', doing: spot('bell', 'tend'), say: 'GONNNNNNG…', shout: true },
-      { at: '06:10', label: 'sweeping the 108 steps', doing: work('stairs', 'sweep') },
+      { at: '06:10', label: 'sweeping the thousand steps', doing: work('stairs', 'sweep') },
       { at: '10:00', label: 'raking the temple gravel', doing: work('templeGrounds', 'sweep') },
       { at: '12:00', label: 'lunch', doing: { kind: 'inside', lit: true } },
-      { at: '13:00', label: 'sweeping the 108 steps (again)', doing: work('stairs', 'sweep') },
+      { at: '13:00', label: 'sweeping the thousand steps (again)', doing: work('stairs', 'sweep') },
       { at: '17:50', label: 'ringing the great bell', doing: spot('bell', 'tend'), say: 'GONNNNNNG…', shout: true },
       home('18:20', 'dinner and sutras'),
       asleep('21:00'),
     ],
     talk: [
-      'One hundred and eight steps. I sweep them every morning. Every afternoon the leaves come back. This is my teaching.',
+      'One thousand and eighty-two steps. I sweep them every morning. By the time I reach the bottom, the top has leaves again. This is my teaching.',
       'Step 52 creaks. Gorō says it hates him. I think it hates everyone.',
       'The abbot says enlightenment comes when you stop counting the steps. I’m on step 74.',
     ],

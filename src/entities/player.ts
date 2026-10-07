@@ -5,12 +5,14 @@ import type { Sprite } from '../art/sprite'
 import { turtleSprite } from '../art/turtle'
 import { input } from '../engine/input'
 import { tileOf } from '../world/grid'
-import { idx, isWet, TILE, type Dir } from '../world/layout'
+import { idx, isWet, T, TILE, type Dir } from '../world/layout'
 import type { Game } from '../game'
 
 const WALK = 46
 const HURRY = 92
 const SWIM = 64
+
+const HUFFS = ['*huff*', '*puff*', '*huff… puff*', '*wheeze*', '(why are there so many steps)', '*huff*']
 
 export class Player {
   x: number
@@ -24,6 +26,9 @@ export class Player {
   private popOut = 0
   private lastEdgeNag = -99
   private rippleT = 0
+  private huffT = 0
+  /** Set once the turtle has reached the temple on this climb; cleared back down in town. */
+  private summited = false
 
   constructor(x: number, y: number) {
     this.x = x
@@ -52,7 +57,10 @@ export class Player {
     }
     if (!wants) return
 
-    const speed = this.swimming ? SWIM : input.down('ShiftLeft', 'ShiftRight') ? HURRY : WALK
+    const here = tileOf(this.x, this.y)
+    const stairs = g.world.tiles[idx(here.x, here.y)] === T.Stairs
+    // Stairs are hard work on four short legs.
+    const speed = (this.swimming ? SWIM : input.down('ShiftLeft', 'ShiftRight') ? HURRY : WALK) * (stairs ? 0.5 : 1)
     const dx = a.x * speed * dt
     const dy = a.y * speed * dt
     const before = { x: this.x, y: this.y }
@@ -78,6 +86,18 @@ export class Player {
         this.rippleT = 0.35
       }
     }
+    if (stairs && this.moving && a.y < 0) {
+      this.huffT -= dt
+      if (this.huffT <= 0) {
+        this.huffT = 2.5 + Math.random() * 2
+        g.speech.floater(this.x, this.y - 18, HUFFS[Math.floor(Math.random() * HUFFS.length)], '#d8d0c0')
+      }
+    }
+    // The summit, and the long way back down.
+    if (!this.summited && g.world.tiles[idx(t.x, t.y)] === T.Gravel && t.y < 19 && t.x > 114 && t.x < 185) {
+      this.summited = true
+      g.speech.say(this, 'Made it. One thousand and eighty-two steps. My knees, all four of them, would like a word.', 4.5)
+    } else if (this.summited && t.y > 80) this.summited = false
     // The map edge: Roshi's voice carries a long way.
     if ((t.x <= 1 || t.x >= g.world.w - 2 || t.y >= g.world.h - 2) && g.time - this.lastEdgeNag > 8) {
       this.lastEdgeNag = g.time

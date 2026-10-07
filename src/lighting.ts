@@ -6,20 +6,22 @@ import { canvas, hexRgb, type Ctx } from './engine/pixel'
 
 type RGB = [number, number, number]
 
-// Gritty palette: moonless nights you can barely see in, a grey-warm overcast day, short bruised
-// dawns and dusks. Lanterns matter.
-const NIGHT: RGB = [46, 52, 96]
-const DAY: RGB = [232, 226, 212]
+// Dark blue nights where lanterns matter, a warm honey-coloured morning, a soft bright midday, and
+// a long golden hour that turns rose at sunset. Clouds and rain dim it all (game.ambient()).
+const NIGHT: RGB = [52, 58, 106]
+const DAY: RGB = [250, 244, 228]
 const KEYS: [number, RGB][] = [
   [0, NIGHT],
   [270, NIGHT],
-  [330, [92, 86, 116]],
-  [380, [196, 160, 140]],
-  [450, DAY],
-  [1020, DAY],
-  [1095, [224, 176, 132]],
-  [1140, [168, 108, 104]],
-  [1200, [70, 70, 112]],
+  [330, [118, 100, 132]],
+  [380, [236, 178, 146]],
+  [430, [255, 222, 176]],
+  [540, DAY],
+  [990, DAY],
+  [1060, [255, 214, 158]],
+  [1110, [250, 176, 120]],
+  [1150, [214, 128, 116]],
+  [1200, [96, 84, 132]],
   [1290, NIGHT],
   [1440, NIGHT],
 ]

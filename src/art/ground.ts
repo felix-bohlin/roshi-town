@@ -9,7 +9,7 @@ import { CROP, idx, T, TILE, type World } from '../world/layout'
 type RGB = [number, number, number]
 const pal = (...hex: string[]): RGB[] => hex.map(hexRgb)
 
-const GRASS = pal('#2c4024', '#3a522c', '#4a6234', '#5a723e', '#6e844c')
+const GRASS = pal('#2e4426', '#3e5a2e', '#4f6c36', '#618040', '#78964e')
 const DIRT = pal('#4e3b2a', '#614a34', '#735a40', '#84694c', '#98805e')
 const EARTH = pal('#76664f', '#85735a', '#928066', '#a08e74')
 const GRAVEL = pal('#9d968b', '#b3ac9f', '#c4bdaf', '#d6d0c2')
@@ -29,28 +29,119 @@ const isRoadish = (t: number) => t === T.Road || t === T.Plaza || t === T.Gravel
 const isWetTile = (t: number) => t === T.Water || t === T.Sea || t === T.Moat
 const isGreen = (t: number) => t === T.Grass || t === T.Forest
 
+/** Chunk size in tiles. The world is far too big for one canvas, so it's painted in chunks on demand. */
+const CHUNK = 32
+const CHUNK_PX = CHUNK * TILE
+/** Painted chunks kept around (1 MB each); the least recently drawn go first. */
+const MAX_CHUNKS = 48
+
+interface Chunk {
+  c: HTMLCanvasElement
+  ctx: Ctx
+  used: number
+}
+
 export class Ground {
-  readonly canvas: HTMLCanvasElement
-  private ctx: Ctx
+  private ctx!: Ctx
   private world: World
+  private chunks = new Map<number, Chunk>()
+  private frame = 0
 
   constructor(world: World) {
     this.world = world
-    const [c, ctx] = canvas(world.w * TILE, world.h * TILE)
-    this.canvas = c
-    this.ctx = ctx
-    const img = ctx.createImageData(c.width, c.height)
-    for (let ty = 0; ty < world.h; ty++) for (let tx = 0; tx < world.w; tx++) this.paintBase(img.data, c.width, tx, ty, tx * TILE, ty * TILE)
-    ctx.putImageData(img, 0, 0)
-    for (let ty = 0; ty < world.h; ty++) for (let tx = 0; tx < world.w; tx++) this.paintDecor(tx, ty)
   }
 
-  /** Repaint one tile (paddy planting). */
+  /** Draw the ground under the camera, painting any chunk that comes into view. */
+  draw(target: Ctx, camX: number, camY: number, w: number, h: number): void {
+    this.frame++
+    const cx0 = Math.max(0, Math.floor(camX / CHUNK_PX))
+    const cy0 = Math.max(0, Math.floor(camY / CHUNK_PX))
+    const cx1 = Math.min(Math.ceil(this.world.w / CHUNK) - 1, Math.floor((camX + w) / CHUNK_PX))
+    const cy1 = Math.min(Math.ceil(this.world.h / CHUNK) - 1, Math.floor((camY + h) / CHUNK_PX))
+    for (let cy = cy0; cy <= cy1; cy++)
+      for (let cx = cx0; cx <= cx1; cx++) {
+        const ch = this.chunk(cx, cy)
+        ch.used = this.frame
+        target.drawImage(ch.c, cx * CHUNK_PX - camX, cy * CHUNK_PX - camY)
+      }
+  }
+
+  private chunk(cx: number, cy: number): Chunk {
+    const key = cy * 1000 + cx
+    const hit = this.chunks.get(key)
+    if (hit) return hit
+    if (this.chunks.size >= MAX_CHUNKS) {
+      let oldest = -1
+      let at = Infinity
+      for (const [k, v] of this.chunks) if (v.used < at) [oldest, at] = [k, v.used]
+      this.chunks.delete(oldest)
+    }
+    const [c, ctx] = canvas(CHUNK_PX, CHUNK_PX)
+    const img = ctx.createImageData(CHUNK_PX, CHUNK_PX)
+    const tx0 = cx * CHUNK
+    const ty0 = cy * CHUNK
+    const tx1 = Math.min(this.world.w, tx0 + CHUNK)
+    const ty1 = Math.min(this.world.h, ty0 + CHUNK)
+    for (let ty = ty0; ty < ty1; ty++) for (let tx = tx0; tx < tx1; tx++) this.paintBase(img.data, CHUNK_PX, tx, ty, (tx - tx0) * TILE, (ty - ty0) * TILE)
+    ctx.putImageData(img, 0, 0)
+    this.ctx = ctx
+    ctx.setTransform(1, 0, 0, 1, -tx0 * TILE, -ty0 * TILE)
+    for (let ty = ty0; ty < ty1; ty++) for (let tx = tx0; tx < tx1; tx++) this.paintDecor(tx, ty)
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    const ch = { c, ctx, used: this.frame }
+    this.chunks.set(key, ch)
+    return ch
+  }
+
+  /** Repaint one tile (paddy planting), if its chunk is painted. */
   repaint(tx: number, ty: number): void {
-    const img = this.ctx.createImageData(TILE, TILE)
+    const ch = this.chunks.get(Math.floor(ty / CHUNK) * 1000 + Math.floor(tx / CHUNK))
+    if (!ch) return
+    const ox = Math.floor(tx / CHUNK) * CHUNK_PX
+    const oy = Math.floor(ty / CHUNK) * CHUNK_PX
+    const img = ch.ctx.createImageData(TILE, TILE)
     this.paintBase(img.data, TILE, tx, ty, 0, 0)
-    this.ctx.putImageData(img, tx * TILE, ty * TILE)
+    ch.ctx.putImageData(img, tx * TILE - ox, ty * TILE - oy)
+    this.ctx = ch.ctx
+    ch.ctx.setTransform(1, 0, 0, 1, -ox, -oy)
     this.paintDecor(tx, ty)
+    ch.ctx.setTransform(1, 0, 0, 1, 0, 0)
+  }
+
+  /** One colour per tile for the map overlay. */
+  mapColor(tx: number, ty: number): RGB {
+    const t = this.tile(tx, ty)
+    const gx = tx * TILE + 8
+    const gy = ty * TILE + 8
+    switch (t) {
+      case T.Road:
+        return DIRT[2]
+      case T.Plaza:
+        return EARTH[2]
+      case T.Gravel:
+        return GRAVEL[2]
+      case T.Water:
+      case T.Moat:
+        return WATER[2]
+      case T.Sea:
+        return SEA[1]
+      case T.Paddy:
+        return PADDY[1]
+      case T.Field:
+        return SOIL[2]
+      case T.Bridge:
+      case T.Pier:
+        return PLANK[2]
+      case T.Sand:
+        return SAND[2]
+      case T.Cliff:
+        return ROCK[2]
+      case T.Stairs:
+      case T.Stone:
+        return STONE[3]
+      default:
+        return grass(gx, gy, t === T.Forest)
+    }
   }
 
   private tile(x: number, y: number): number {
@@ -199,10 +290,14 @@ export class Ground {
 
   /** Muddy puddles on roads (the game draws rain rings on them): centre x, y and half-width. */
   readonly puddles: { x: number; y: number; w: number }[] = []
+  private puddleAt = new Set<number>()
 
   private puddle(cx: number, cy: number, w: number, r: () => number): void {
     const ctx = this.ctx
-    if (!this.puddles.some((p) => p.x === cx && p.y === cy)) this.puddles.push({ x: cx, y: cy, w })
+    if (!this.puddleAt.has(cy * 100000 + cx)) {
+      this.puddleAt.add(cy * 100000 + cx)
+      this.puddles.push({ x: cx, y: cy, w })
+    }
     const h = Math.max(2, Math.round(w * 0.45))
     for (let y = -h - 1; y <= h + 1; y++)
       for (let x = -w - 1; x <= w + 1; x++) {
@@ -231,8 +326,8 @@ export class Ground {
         px(ctx, x + 1, y - 1, 1, 1, '#3a522c')
         px(ctx, x, y - 1, 1, 1, r() < 0.3 ? '#8a845a' : '#6e844c')
       }
-      if (t === T.Grass && r() < 0.03) {
-        const colors = ['#d8d4c8', '#c8b048', '#b88890', '#d8d4c8']
+      if (t === T.Grass && r() < 0.05) {
+        const colors = ['#ece6d6', '#e0c050', '#d898a8', '#a8b0e0', '#ece6d6']
         const n = 1 + Math.floor(r() * 3)
         const col = colors[Math.floor(r() * colors.length)]
         for (let i = 0; i < n; i++) {
@@ -463,6 +558,6 @@ function paving(gx: number, gy: number): RGB {
   if (hash(gx, gy, 96) < 0.02) k = 1
   // Big soft stains of mud trodden in from the roads.
   const m = noise(gx / 14, gy / 14, 99)
-  if (m > 0.7 && hash(gx, gy, 100) < (m - 0.7) * 3) return GRIME[2]
+  if (m > 0.75 && hash(gx, gy, 100) < (m - 0.75) * 2.2) return GRIME[2]
   return STONE[k]
 }

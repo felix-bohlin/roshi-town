@@ -192,7 +192,7 @@ export function frame(b: Building, extraTop: number): { W: number; H: number; do
 
 export function finish(img: HTMLCanvasElement, art: Omit<BuildingArt, 'img' | 'ax' | 'ay'>): BuildingArt {
   grime(img, img.width * 31 + img.height * 7 + art.windows.length)
-  mute(img, 0.18)
+  mute(img, 0.12)
   outline(img, INK)
   return { img, ax: PAD, ay: img.height, ...art }
 }

@@ -12,7 +12,7 @@ import { portrait } from './art/people'
 import { propArt, stallSprite } from './art/props'
 import type { Sprite } from './art/sprite'
 import { unlockAudio } from './audio/engine'
-import { startMusic, stopMusic } from './audio/music'
+import { setMood, startMusic, stopMusic } from './audio/music'
 import { playBell } from './audio/bell'
 import { playThunder, setRain } from './audio/ambience'
 import { input, onTap } from './engine/input'
@@ -95,6 +95,9 @@ function umbrella(i: number): HTMLCanvasElement {
   return c
 }
 
+/** Map overlay resolution, pixels per tile. */
+const MAP_PX = 4
+
 const HINT =
   'WASD / arrows: walk · Shift: hurry · Space: hide in shell · E: talk & look · M: map · [ ]: time speed · R: weather · H: help'
 
@@ -152,7 +155,7 @@ export class Game {
     const start = tileFeet(this.world.start)
     this.player = new Player(start.x, start.y)
     this.player.dir = 'up'
-    this.villagers = [...CAST, ...makeExtras()].map((s) => new Villager(s, this))
+    this.villagers = [...CAST, ...makeExtras(this.world)].map((s) => new Villager(s, this))
     for (const v of this.villagers) {
       const id = v.spec.home.startsWith('door:') ? v.spec.home.slice(5) : v.spec.home
       this.residents.set(id, [...(this.residents.get(id) ?? []), v])
@@ -172,7 +175,6 @@ export class Game {
     if (this.world.tiles[i] !== T.Paddy || !!this.world.planted[i] === on) return
     this.world.planted[i] = on ? 1 : 0
     this.ground.repaint(x, y)
-    if (this.snapshot) this.snapshot = null
   }
 
   onScreen(x: number, y: number, margin = 16): boolean {
@@ -329,6 +331,7 @@ export class Game {
     this.weather.update(dt, dmin, this.clock.day, this.clock.minutes)
     if (this.weather.thunder && this.musicOn) playThunder()
     setRain(this.weather.rain, this.musicOn && !this.title)
+    setMood(this.clock.minutes >= 5 * 60 && this.clock.minutes < 20 * 60 ? 'day' : 'night')
     this.screen.setGrade(this.weather.grade())
     // Temple bells at dawn and dusk.
     const m = Math.floor(this.clock.minutes)
@@ -526,7 +529,7 @@ export class Game {
     const camY = Math.round(this.camY)
     ctx.fillStyle = '#1a1220'
     ctx.fillRect(0, 0, s.w, s.h)
-    ctx.drawImage(this.ground.canvas, Math.max(0, camX), Math.max(0, camY), s.w, s.h, Math.max(0, -camX), Math.max(0, -camY), s.w, s.h)
+    this.ground.draw(ctx, camX, camY, s.w, s.h)
     this.drawWater(ctx, camX, camY)
     this.drawKoi(ctx, camX, camY)
     this.fx.drawGround(ctx, camX, camY)
@@ -628,7 +631,7 @@ export class Game {
       if (!this.dialog) drawHint(s, HINT, hintAlpha)
     }
     if (this.dialog) this.dialog.draw(s)
-    if (this.showMap) drawMap(s, this.mapSnapshot(), this.mapMarkers(), this.player, this.clock, this.time)
+    if (this.showMap) drawMap(s, this.mapSnapshot(), this.world.w * TILE, this.mapMarkers(), this.player, this.clock, this.time)
     if (this.showHelp) drawHelp(s)
     if (this.title) drawTitle(s, this.roshi, this.time)
     if (this.debug) this.drawDebugText()
@@ -749,8 +752,8 @@ export class Game {
           px(ctx, ox + sx, oy + sy, 2, 1, tile === T.Paddy ? '#c8e4dc' : '#cfe8f0')
         }
         if (rain > 0.05) this.rainRings(ctx, ox, oy, TILE, TILE, tx * 131 + ty, rain)
-        // The river flows south.
-        if (tile === T.Water && tx > 115 && northWater) {
+        // The river (and the mountain stream) flows south.
+        if (tile === T.Water && (tx > 240 || (tx >= 126 && tx <= 127 && ty < 31)) && northWater) {
           const h = hash(tx, ty, 70)
           const fy = (t * 9 + h * 16) % 16
           ctx.globalAlpha = 0.45
@@ -869,11 +872,27 @@ export class Game {
     ctx.globalAlpha = 1
   }
 
+  /** The whole town at MAP_PX pixels per tile: tile colours, then every building and prop shrunk down. */
   private mapSnapshot(): HTMLCanvasElement {
     if (this.snapshot) return this.snapshot
-    const [c, ctx] = canvas(this.world.w * TILE, this.world.h * TILE)
-    ctx.drawImage(this.ground.canvas, 0, 0)
-    for (const st of [...this.statics].sort((a, b) => a.sortY - b.sortY)) ctx.drawImage(st.img, st.x, st.y)
+    const k = MAP_PX / TILE
+    const [c, ctx] = canvas(this.world.w * MAP_PX, this.world.h * MAP_PX)
+    const img = ctx.createImageData(c.width, c.height)
+    for (let ty = 0; ty < this.world.h; ty++)
+      for (let tx = 0; tx < this.world.w; tx++) {
+        const [r, g, b] = this.ground.mapColor(tx, ty)
+        for (let y = 0; y < MAP_PX; y++)
+          for (let x = 0; x < MAP_PX; x++) {
+            const o = ((ty * MAP_PX + y) * c.width + tx * MAP_PX + x) * 4
+            img.data[o] = r
+            img.data[o + 1] = g
+            img.data[o + 2] = b
+            img.data[o + 3] = 255
+          }
+      }
+    ctx.putImageData(img, 0, 0)
+    ctx.imageSmoothingEnabled = true
+    for (const st of [...this.statics].sort((a, b) => a.sortY - b.sortY)) ctx.drawImage(st.img, st.x * k, st.y * k, st.img.width * k, st.img.height * k)
     this.snapshot = c
     return c
   }
