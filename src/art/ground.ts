@@ -10,16 +10,16 @@ type RGB = [number, number, number]
 const pal = (...hex: string[]): RGB[] => hex.map(hexRgb)
 
 const GRASS = pal('#2e4426', '#3e5a2e', '#4f6c36', '#618040', '#78964e')
-const DIRT = pal('#4e3b2a', '#614a34', '#735a40', '#84694c', '#98805e')
-const EARTH = pal('#76664f', '#85735a', '#928066', '#a08e74')
+const DIRT = pal('#6a5236', '#7c6242', '#8c714c', '#9a7f58', '#ad9468')
+const EARTH = pal('#a48a5e', '#b39a6a', '#c0a776', '#cbb383')
 const GRAVEL = pal('#9d968b', '#b3ac9f', '#c4bdaf', '#d6d0c2')
-const WATER = pal('#244f6c', '#2c5f80', '#377294', '#4e8cae', '#86bfd6', '#cfe8f0')
+const WATER = pal('#1d4f52', '#245e60', '#2d6f6e', '#41857f', '#7cb5a8', '#cde8e0')
 const BANK = pal('#4d3b27', '#634c31', '#7a603e')
 const PADDY = pal('#4c7a77', '#598885', '#679893', '#8cb8ae')
 const MUD = pal('#57472f', '#6c5a3c')
 const SOIL = pal('#4a2f1c', '#5c3b24', '#704b2e', '#835b39')
 const PLANK = pal('#5e3d22', '#86603a', '#9a7046', '#ad8152', '#4a2c17')
-const SEA = pal('#163c5a', '#1c4a6c', '#24597e', '#3a7aa0', '#7ab2cc', '#e8f4f6')
+const SEA = pal('#123f46', '#174e55', '#1e5f64', '#2f7a78', '#6fb0a6', '#e0f2ec')
 const SAND = pal('#bfa574', '#d0b886', '#ddc898', '#e9d9b0', '#a88e60')
 const ROCK = pal('#463e37', '#5a5149', '#70665b', '#887d6e', '#a09481', '#2e2823')
 const STONE = pal('#5c5850', '#6e6a60', '#7c776c', '#837e72', '#8b8578', '#45413b')
@@ -351,7 +351,7 @@ export class Ground {
       const y = y0 + 3 + Math.floor(r() * 10)
       px(ctx, x, y, 2, 1, '#4f8541')
       px(ctx, x + 1, y - 1, 1, 1, '#62994a')
-    } else if ((t === T.Road || t === T.Plaza) && hash(tx, ty, 76) < (t === T.Road ? 0.13 : 0.06) && this.tile(tx, ty - 1) === t && this.tile(tx, ty + 1) === t) {
+    } else if (t === T.Road && hash(tx, ty, 76) < 0.05 && this.tile(tx, ty - 1) === t && this.tile(tx, ty + 1) === t) {
       this.puddle(x0 + 3 + Math.floor(r() * 5), y0 + 5 + Math.floor(r() * 5), 5 + Math.floor(r() * 4), r)
     } else if (t === T.Road && r() < 0.35) {
       // Pebbles, and ruts from the carts.

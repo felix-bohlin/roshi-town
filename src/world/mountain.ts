@@ -1,4 +1,5 @@
-// The mountain north of the city: Kōun-ji temple on its summit plateau and the long climb up to it.
+// The mountain on the north-east mainland: Kōun-ji temple on its summit plateau and the long climb up
+// to it. Planned in its own coordinates (x 100–186 here) and dropped into the map by world/town.ts.
 //
 //   y 66–79   the temple approach town: pilgrim inns, charm shops and dango, the great torii
 //   y 55–65   the foot of the mountain and the first flight of stairs (A)
@@ -15,10 +16,10 @@
 
 import { rng } from '../engine/rng'
 import { Builder, T } from './layout'
-import { AVE_X, band, lantern, POOLS, rect } from './plan'
+import { band, lantern, POOLS, rect } from './plan'
 
 const r = rng(1082)
-const A = AVE_X // the axis: approach road, flights A and D, temple gate and main hall
+const A = 140 // the axis (in the mountain's own coordinates): approach road, flights A and D, temple gate, main hall
 
 export function mountain(B: Builder): void {
   slopes(B)
@@ -29,7 +30,7 @@ export function mountain(B: Builder): void {
 
 /** Forest over the whole mountain, then the cliffs, landings and stairs carved into it. */
 function slopes(B: Builder): void {
-  B.fill(60, 0, 172, 63, T.Forest)
+  B.fillOver(60, 0, 172, 63, T.Forest, [T.Grass, T.Sand])
   // Summit plateau.
   B.fill(100, 2, 85, 17, T.Grass)
   B.fill(115, 2, 70, 17, T.Gravel)

@@ -2,8 +2,8 @@
 // scripts/check.ts can validate the town in node.
 
 export const TILE = 16
-const MAP_W = 288
-const MAP_H = 224
+const MAP_W = 400
+const MAP_H = 320
 
 export const T = {
   Grass: 0,
@@ -288,4 +288,32 @@ export class Builder {
   district(name: string, x: number, y: number, w: number, h: number): void {
     this.districts.push({ name, x, y, w, h })
   }
+}
+
+/**
+ * A view of the builder shifted by (dx, dy): a part of the map planned in its own coordinates (the
+ * mountain) can be dropped anywhere. Buildings it returns are in the shifted coordinates too.
+ */
+export function shifted(B: Builder, dx: number, dy: number): Builder {
+  const s = Object.create(B) as Builder
+  const sh = (p: Pt): Pt => ({ x: p.x + dx, y: p.y + dy })
+  Object.assign(s, {
+    inside: (x: number, y: number) => B.inside(x + dx, y + dy),
+    get: (x: number, y: number) => B.get(x + dx, y + dy),
+    set: (x: number, y: number, t: Tile) => B.set(x + dx, y + dy, t),
+    fill: (x: number, y: number, w: number, h: number, t: Tile) => B.fill(x + dx, y + dy, w, h, t),
+    fillOver: (x: number, y: number, w: number, h: number, t: Tile, over: number[]) => B.fillOver(x + dx, y + dy, w, h, t, over),
+    take: (x: number, y: number, w?: number, h?: number) => B.take(x + dx, y + dy, w, h),
+    isTaken: (x: number, y: number) => B.isTaken(x + dx, y + dy),
+    building: (b: Omit<Building, 'door'> & { door?: Pt; doorX?: number }) => {
+      const full = B.building({ ...b, x: b.x + dx, y: b.y + dy, door: b.door && sh(b.door), doorX: b.doorX === undefined ? undefined : b.doorX + dx, open: b.open?.map(sh) })
+      return { ...full, x: full.x - dx, y: full.y - dy, door: { x: full.door.x - dx, y: full.door.y - dy } }
+    },
+    prop: (p: Prop) => B.prop({ ...p, x: p.x + dx, y: p.y + dy }),
+    place: (name: string, x: number, y: number, face?: Dir) => B.place(name, x + dx, y + dy, face),
+    spot: (group: string, name: string, x: number, y: number, face?: Dir) => B.spot(group, name, x + dx, y + dy, face),
+    area: (name: string, x: number, y: number, w: number, h: number, only?: Tile[]) => B.area(name, x + dx, y + dy, w, h, only),
+    district: (name: string, x: number, y: number, w: number, h: number) => B.district(name, x + dx, y + dy, w, h),
+  })
+  return s
 }

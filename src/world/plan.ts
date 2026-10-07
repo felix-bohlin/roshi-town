@@ -1,23 +1,15 @@
-// Shared pieces of the town plan: the big coordinates every part of the map agrees on, small prop
-// helpers, and the generator that lines a street with houses.
+// Shared pieces of the town plan: small prop helpers, the kinds of house lots, and `band`, which
+// lines one straight street with houses (the temple town uses it; Kumoi and the villages grow
+// organically, see organic.ts).
 //
-// Buildings are drawn front-on with the door at the bottom, so a street is lined on its north side:
-// a "band" of lots whose doors all open onto the street row below it. The city is bands and
-// streets stacked top to bottom, cut by north–south lanes.
+// Buildings are drawn front-on with the door at the bottom, so a straight street is lined on its
+// north side: a "band" of lots whose doors all open onto the street row below it.
 
 import { pick, type Rng } from '../engine/rng'
 import { T, type Builder, type Building, type BuildingKind, type Pt } from './layout'
 
-// City walls (inclusive tile lines); the moat is a 3-tile ring just outside them.
-export const WX0 = 48
-export const WX1 = 236
-export const WY0 = 84
-export const WY1 = 168
-/** The grand avenue (North Gate to Sea Gate) and main street (West Gate to East Gate). */
-export const AVE_X = 140
-export const MAIN_Y = 124
-/** First sea row along the harbour. */
-export const QUAY_SEA = 188
+/** The mountain's axis: the temple approach road, the first and last flights, the temple gate. */
+export const AVE_X = 320
 
 export function rect(x: number, y: number, w: number, h: number): Pt[] {
   const out: Pt[] = []
@@ -108,13 +100,13 @@ const WORK_TEXT: Record<string, string[]> = {
   umbrella: ['Oiled-paper umbrellas drying open like flowers. The rainy season is good business.'],
 }
 
-const houseLot = (r: Rng): Lot => ({ kind: 'machiya', w: range(r, 5, 7), h: 5, name: 'Townhouse', text: [pick(r, HOUSE_TEXT)], home: true })
-const rowLot = (r: Rng): Lot => ({ kind: 'nagaya', w: range(r, 10, 12), h: 4, name: 'Row houses', text: [pick(r, ROW_TEXT)], home: true })
-const shopLot = (r: Rng, variants = Object.keys(SHOP)): Lot => {
+export const houseLot = (r: Rng): Lot => ({ kind: 'machiya', w: range(r, 5, 7), h: 5, name: 'Townhouse', text: [pick(r, HOUSE_TEXT)], home: true })
+export const rowLot = (r: Rng): Lot => ({ kind: 'nagaya', w: range(r, 10, 12), h: 4, name: 'Row houses', text: [pick(r, ROW_TEXT)], home: true })
+export const shopLot = (r: Rng, variants = Object.keys(SHOP)): Lot => {
   const v = pick(r, variants)
   return { kind: 'shop', variant: v, w: 6, h: 5, name: SHOP[v].name, text: SHOP[v].text }
 }
-const kuraLot = (): Lot => ({ kind: 'kura', w: 4, h: 5, name: 'Storehouse', text: ['A merchant’s storehouse. Thick white walls, a fireproof door, and a padlock the size of your head.'] })
+export const kuraLot = (): Lot => ({ kind: 'kura', w: 4, h: 5, name: 'Storehouse', text: ['A merchant’s storehouse. Thick white walls, a fireproof door, and a padlock the size of your head.'] })
 
 /** Neighbourhood mixes. */
 export const POOLS = {

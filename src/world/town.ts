@@ -1,28 +1,30 @@
-// Kumoi, a port city in Ise Province, 1582 — the town plan, 288×224 tiles of 16 px.
+// Kumoi and the country around it, Ise Province, 1582 — the whole map, 400×320 tiles of 16 px.
 //
-//   north    the mountain, with Kōun-ji on its summit and the long climb up (world/mountain.ts)
-//   centre   the walled city in its moat: avenue, main street, square, castle, quarters (world/city.ts)
-//   south    the harbour and the bay (world/harbour.ts)
-//   west     rice terraces, farms, the refugee camp, the fishing village (world/outskirts.ts)
-//   east     the river, the woods and the old shrine, the east beach, Roshi's island
+//   the bay      Kumoi on its islands round the harbour basin (world/kumoi.ts)
+//   north-east   woods, a bamboo grove, the mountain with Kōun-ji and its temple village
+//                (world/mountain.ts, placed 180 tiles east of where it was planned)
+//   east         the river, the old shrine in the woods, the village of Okitsu on the east road
+//   south        the farming village of Inaba and the refugee camp, the fishing village of Hamana
+//   west         open sea, and Roshi's island (world/villages.ts)
 
 import { rng } from '../engine/rng'
-import { city } from './city'
-import { harbour } from './harbour'
-import { Builder, idx, T, type TreeKind, type World } from './layout'
+import { kumoi } from './kumoi'
+import { Builder, idx, shifted, T, type TreeKind, type World } from './layout'
 import { mountain } from './mountain'
-import { ISLAND, outskirts, riverX } from './outskirts'
-import { AVE_X, MAIN_Y, QUAY_SEA, WX0, WX1, WY0, WY1 } from './plan'
+import { ISLAND, mainland, RIVER, villages } from './villages'
+
+/** Where the mountain (planned at x 100–186) sits on the map. */
+const MOUNTAIN_DX = 180
 
 export function buildWorld(): World {
   const B = new Builder()
-  terrain(B)
-  mountain(B)
-  city(B)
-  harbour(B)
-  outskirts(B)
+  B.fill(0, 0, B.w, B.h, T.Sea)
+  mainland(B)
+  const city = kumoi(B)
+  mountain(shifted(B, MOUNTAIN_DX, 0))
+  const country = villages(B)
   districts(B)
-  nature(B)
+  nature(B, (i) => city.zone[i] > 0 || country.zone[i] > 0)
   return {
     w: B.w,
     h: B.h,
@@ -40,141 +42,91 @@ export function buildWorld(): World {
   }
 }
 
-/** First sea row per column. */
-function coastY(x: number): number {
-  if (x >= 36 && x <= 240) return QUAY_SEA
-  return 196 + Math.round(1.5 * Math.sin(x / 7) + 0.8 * Math.sin(x / 2.9 + 1))
-}
-
-function terrain(B: Builder): void {
-  // Forest along the map edges.
-  for (let y = 0; y < B.h; y++) for (let x = 0; x < B.w; x++) if (y <= 1 || x <= 1 || x >= B.w - 2) B.set(x, y, T.Forest)
-  // The sea, and beaches west and east of the harbour.
-  for (let x = 0; x < B.w; x++) {
-    const c = coastY(x)
-    for (let y = c; y < B.h; y++) B.set(x, y, T.Sea)
-    if (x < 36) for (let y = 176 + Math.round(Math.sin(x / 4) * 1.5); y < c; y++) B.set(x, y, T.Sand)
-    if (x > 240) for (let y = 178 + Math.round(Math.sin(x / 3) * 1.5); y < c; y++) B.set(x, y, T.Sand)
-  }
-  // The river comes down out of the eastern woods into the sea.
-  for (let y = 0; y < B.h; y++) {
-    const c = riverX(y)
-    for (let dx = -1; dx <= 1; dx++) if (B.get(c + dx, y) !== T.Sea) B.set(c + dx, y, T.Water)
-  }
-  // Moat ring, with the city (and a grass berm) inside.
-  B.fill(WX0 - 4, WY0 - 4, WX1 - WX0 + 9, WY1 - WY0 + 9, T.Moat)
-  B.fill(WX0 - 1, WY0 - 1, WX1 - WX0 + 3, WY1 - WY0 + 3, T.Grass)
-  // Roads in and out: west to Sakai, east to Okazaki (over the river).
-  B.fill(0, MAIN_Y + 1, WX0 - 4, 2, T.Road)
-  B.fill(WX1 + 5, MAIN_Y + 1, B.w - WX1 - 5, 2, T.Road)
-  // Bridges over the moat.
-  B.fill(AVE_X, WY0 - 4, 4, 3, T.Bridge)
-  B.fill(AVE_X, WY1 + 2, 4, 3, T.Bridge)
-  B.fill(WX0 - 4, MAIN_Y + 1, 3, 2, T.Bridge)
-  B.fill(WX1 + 2, MAIN_Y + 1, 3, 2, T.Bridge)
-  for (let x = riverX(MAIN_Y + 1) - 2; x <= riverX(MAIN_Y + 2) + 2; x++) for (const y of [MAIN_Y + 1, MAIN_Y + 2]) if (B.get(x, y) === T.Water) B.set(x, y, T.Bridge)
-  B.area('moatSouth', WX0 - 4, WY1 + 2, WX1 - WX0 + 9, 3, [T.Moat])
-  B.area('moatNorth', WX0 - 4, WY0 - 4, WX1 - WX0 + 9, 3, [T.Moat])
-}
-
 function districts(B: Builder): void {
+  const M = MOUNTAIN_DX
   // Earlier entries win where they overlap.
-  B.district("Roshi's Island", ISLAND.x - 16, ISLAND.y - 10, 32, 18)
-  B.district('North Gate', AVE_X - 4, WY0 - 5, 12, 9)
-  B.district('Sea Gate', AVE_X - 4, WY1 - 3, 12, 10)
-  B.district('West Gate', WX0 - 5, MAIN_Y - 3, 9, 9)
-  B.district('East Gate', WX1 - 3, MAIN_Y - 3, 9, 9)
-  B.district('Refugee Camp', 32, 100, 12, 23)
-  B.district('Kōun-ji Temple', 100, 0, 85, 19)
-  B.district('The Torii Tunnel', 106, 37, 12, 15)
-  B.district('Halfway Teahouse', 164, 26, 21, 11)
-  B.district('The Waterfall', 120, 24, 14, 13)
-  B.district('The Six Jizō', 106, 51, 42, 5)
-  B.district('The Thousand Steps', 100, 19, 90, 47)
-  B.district('Temple Town', 98, 66, 90, 13)
-  B.district('Kumoi Castle', 186, WY0, WX1 - 186, 40)
-  B.district('Town Square', 118, 102, 49, 22)
-  B.district('Inari Shrine', 167, 102, 18, 8)
-  B.district('Samurai Quarter', WX0, WY0, 70, 17)
-  B.district('Shop Row', 118, WY0, 68, 18)
-  B.district('Merchant Quarter', WX0, 101, 70, 23)
-  B.district('Main Street', WX0, MAIN_Y, WX1 - WX0, 4)
-  B.district('Jōshō-ji', 96, 148, 21, 18)
-  B.district('Craftsmen’s Quarter', WX0, 128, 92, 41)
-  B.district('Willow Canal', 144, 143, WX1 - 144, 12)
-  B.district('Inn & Brewery Street', 144, 128, WX1 - 144, 15)
-  B.district('Lower Town', 144, 155, WX1 - 144, 14)
-  B.district('Grand Avenue', AVE_X, WY0, 4, WY1 - WY0)
-  B.district('Fish Market', 58, 173, 16, 12)
-  B.district('The Lighthouse', 222, QUAY_SEA, 10, 20)
-  B.district('Harbour', 30, 173, 212, 32)
-  B.district('Fishing Village', 0, 176, 36, 24)
-  B.district('Old Kumoi Shrine', 262, 94, 16, 16)
-  B.district('Rice Terraces', 0, 60, 44, 70)
-  B.district('Farms', 0, 128, 44, 48)
-  B.district('East Beach', 241, 176, 47, 22)
-  B.district('The River', riverX(120) - 5, 0, 11, 196)
-  B.district('Eastern Woods', 232, 0, 56, 176)
-  B.district('Bamboo Grove', 0, 0, 60, 60)
-  B.district('The Mountain', 60, 0, 172, 66)
-  B.district('The Moat', WX0 - 5, WY0 - 5, WX1 - WX0 + 11, WY1 - WY0 + 11)
+  B.district("Roshi's Island", ISLAND.x - 14, ISLAND.y - 9, 30, 17)
+  B.district('Kōun-ji Temple', 100 + M, 0, 85, 19)
+  B.district('The Torii Tunnel', 106 + M, 37, 12, 15)
+  B.district('Halfway Teahouse', 164 + M, 26, 21, 11)
+  B.district('The Waterfall', 120 + M, 24, 14, 13)
+  B.district('The Six Jizō', 106 + M, 51, 42, 5)
+  B.district('The Thousand Steps', 100 + M, 19, 90, 47)
+  B.district('Temple Village', 98 + M, 63, 90, 17)
+  B.district('Kumoi Castle', 132, 14, 35, 30)
+  B.district('Town Square', 138, 128, 40, 24)
+  B.district('Willow Canal', 110, 186, 116, 14)
+  B.district('Samurai Quarter', 50, 8, 90, 66)
+  B.district('The Causeway', 126, 56, 36, 26)
+  B.district('Harbour Arm', 18, 158, 50, 92)
+  B.district('Craftsmen’s Quarter', 100, 198, 120, 66)
+  B.district('Shiomachi', 194, 140, 96, 120)
+  B.district('Merchant Quarter', 64, 66, 120, 120)
+  B.district('Kumoi', 180, 66, 80, 125)
+  B.district('Inaba', 20, 276, 70, 44)
+  B.district('Refugee Camp', 76, 274, 18, 24)
+  B.district('Rice Terraces', 0, 270, 30, 50)
+  B.district('Hamana', 155, 268, 75, 30)
+  B.district('Okitsu', 312, 186, 70, 56)
+  B.district('Old Kumoi Shrine', 362, 144, 22, 22)
+  B.district('The River', 290, 0, 110, 145)
+  B.district('Bamboo Grove', 200, 0, 45, 60)
+  B.district('The Mountain', 240, 0, 160, 66)
+  B.district('Northern Woods', 200, 0, 200, 112)
+  B.district('Eastern Woods', 296, 110, 104, 210)
+  B.district('South Shore', 0, 260, 300, 60)
+  B.district('Ise Bay', 0, 0, 400, 320)
 }
 
-function nature(B: Builder): void {
+function nature(B: Builder, settled: (i: number) => boolean): void {
   const r = rng(1582)
   const W = B.w
   const H = B.h
-  // Keep scatter off roads, doors and the verges.
+  // Keep scatter off roads, doors, places, villages and the city.
   const blocked = new Uint8Array(W * H)
   const block = (x: number, y: number, w = 1, h = 1) => {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (B.inside(i, j)) blocked[idx(i, j)] = 1
   }
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
-      const t = B.get(x, y)
-      if (B.taken[idx(x, y)]) block(x - 1, y - 1, 3, 3)
+      const i = idx(x, y)
+      const t = B.tiles[i]
+      if (settled(i)) blocked[i] = 1
+      if (B.taken[i]) block(x - 1, y - 1, 3, 3)
       if (t !== T.Grass && t !== T.Forest && t !== T.Sand) block(x, y)
-      if (t === T.Road || t === T.Plaza || t === T.Stone || t === T.Bridge || t === T.Gravel || t === T.Stairs) block(x - 1, y - 1, 3, 3)
+      if (t === T.Road || t === T.Plaza || t === T.Stone || t === T.Bridge || t === T.Gravel || t === T.Stairs || t === T.Pier) block(x - 1, y - 1, 3, 3)
     }
   for (const b of B.buildings) block(b.door.x - 1, b.door.y, 3, 2)
   for (const p of Object.values(B.places)) block(p.x - 1, p.y - 1, 3, 3)
   for (const a of Object.values(B.areas)) if (!a.only || a.only.includes(T.Grass)) block(a.x, a.y, a.w, a.h)
-  // Inside the city walls only the gardens (world/city.ts).
-  block(WX0, WY0, WX1 - WX0 + 1, WY1 - WY0 + 1)
-  // The approach between the shops and the mountain foot stays open.
-  block(AVE_X - 2, 63, 8, 17)
+  block(MOUNTAIN_DX + 98, 63, 90, 17)
 
-  const tree = (x: number, y: number, v: TreeKind) => {
-    B.prop({ kind: 'tree', x, y, variant: v, solid: true })
-    block(x, y)
-  }
   const zone = (x0: number, y0: number, x1: number, y1: number, density: number, kinds: TreeKind[], ground: number[] = [T.Grass]) => {
     for (let y = y0; y <= y1; y++)
       for (let x = x0; x <= x1; x++) {
-        if (blocked[idx(x, y)] || !ground.includes(B.get(x, y))) continue
-        if (r() < density) tree(x, y, kinds[Math.floor(r() * kinds.length)])
+        if (!B.inside(x, y) || blocked[idx(x, y)] || !ground.includes(B.get(x, y))) continue
+        if (r() < density) {
+          B.prop({ kind: 'tree', x, y, variant: kinds[Math.floor(r() * kinds.length)], solid: true })
+          blocked[idx(x, y)] = 1
+        }
       }
   }
-  // Bamboo grove in the north-west.
+  // Bamboo grove north of the city, woods round the mountain and in the east.
   for (let y = 2; y <= 58; y++)
-    for (let x = 2; x <= 58; x++) {
-      if (blocked[idx(x, y)] || B.get(x, y) !== T.Grass) continue
-      if (r() < (x < 40 ? 0.5 : 0.28)) {
+    for (let x = 200; x <= 244; x++) {
+      if (!B.inside(x, y) || blocked[idx(x, y)] || B.get(x, y) !== T.Grass) continue
+      if (r() < 0.42) {
         B.prop({ kind: 'bamboo', x, y, solid: true })
-        block(x, y)
+        blocked[idx(x, y)] = 1
       }
     }
-  // Woods in the east, either side of the river; maples and pines at the mountain foot.
-  zone(232, 2, 285, 176, 0.3, ['broad', 'broad', 'maple', 'cedar', 'pine'])
-  zone(186, 63, 231, 79, 0.28, ['maple', 'pine', 'broad'])
-  zone(60, 63, 97, 79, 0.28, ['maple', 'pine', 'broad'])
-  zone(2, 59, 43, 63, 0.3, ['broad', 'maple', 'pine'])
-  // A few trees round the farms; black pines along the beaches.
-  zone(2, 64, 43, 175, 0.035, ['broad', 'persimmon', 'pine'])
-  zone(2, 176, 35, 196, 0.08, ['blackpine'], [T.Sand, T.Grass])
-  zone(241, 176, 285, 197, 0.08, ['blackpine'], [T.Sand, T.Grass])
-  // Trees on the forest tiles (decoration: the forest itself blocks movement). The mountain gets
-  // cedars and maples, the edges broadleaves and pines.
+  zone(200, 58, 300, 110, 0.26, ['broad', 'maple', 'pine', 'cedar'])
+  zone(366, 0, 398, 110, 0.3, ['cedar', 'broad', 'maple'])
+  zone(296, 110, 398, 318, 0.2, ['broad', 'broad', 'maple', 'cedar', 'pine'])
+  zone(2, 266, 296, 318, 0.04, ['broad', 'persimmon', 'pine', 'maple'])
+  zone(0, 255, 300, 320, 0.08, ['blackpine'], [T.Sand])
+  zone(296, 100, 400, 320, 0.05, ['blackpine'], [T.Sand])
+  // Trees on the mountain's forest tiles (decoration: the forest itself blocks movement).
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       if (B.get(x, y) !== T.Forest) continue
@@ -184,33 +136,38 @@ function nature(B: Builder): void {
         return a === T.Road || b === T.Road || a === T.Stairs || b === T.Stairs
       })
       if (nearPath || r() > 0.5) continue
-      const onMountain = y < 63 && x >= 60 && x < 232
-      const v: TreeKind = onMountain ? (r() < 0.55 ? 'cedar' : r() < 0.5 ? 'maple' : 'pine') : y < 2 ? 'cedar' : r() < 0.5 ? 'broad' : 'pine'
+      const onMountain = y < 63 && x >= 240
+      const v: TreeKind = onMountain ? (r() < 0.55 ? 'cedar' : r() < 0.5 ? 'maple' : 'pine') : r() < 0.5 ? 'broad' : 'pine'
       B.prop({ kind: 'tree', x, y, variant: v, solid: false })
     }
-  // Bushes and rocks on leftover grass outside the walls.
+  // Bushes, rocks and wild hydrangeas on leftover grass.
   for (let y = 2; y < H - 2; y++)
     for (let x = 2; x < W - 2; x++) {
       if (blocked[idx(x, y)] || B.get(x, y) !== T.Grass) continue
       const v = r()
-      if (v < 0.025) {
+      if (v < 0.02) {
         B.prop({ kind: 'bush', x, y, solid: true, name: 'Bush', text: 'A bush. It rustles. Probably a ninja. Probably a sparrow.' })
         block(x - 1, y - 1, 3, 3)
-      } else if (v < 0.035) {
+      } else if (v < 0.028) {
         B.prop({ kind: 'rock', x, y, solid: true, name: 'Rock', text: 'A mossy rock. You feel a certain kinship.' })
         block(x - 1, y - 1, 3, 3)
-      } else if (v < 0.045) {
+      } else if (v < 0.036) {
         B.prop({ kind: 'hydrangea', x, y, solid: true, name: 'Hydrangea', text: 'Wild hydrangeas, blue and violet. The rainy season’s one good idea.' })
         block(x - 1, y - 1, 3, 3)
       }
     }
   // Reeds along the river; irises by the temple pond.
-  for (let y = 2; y < 196; y++) {
-    const c = riverX(y)
-    for (const x of [c - 2, c + 2]) if (B.get(x, y) === T.Grass && !B.isTaken(x, y) && r() < 0.35) B.prop({ kind: 'reeds', x, y, solid: false })
+  for (let k = 0; k + 1 < RIVER.length; k++) {
+    const [ax, ay] = RIVER[k]
+    const [bx, by] = RIVER[k + 1]
+    for (let s = 0; s < 1; s += 0.02) {
+      const x = Math.round(ax + (bx - ax) * s)
+      const y = Math.round(ay + (by - ay) * s)
+      for (const dx of [-3, 3]) if (B.get(x + dx, y) === T.Grass && !B.isTaken(x + dx, y) && r() < 0.35) B.prop({ kind: 'reeds', x: x + dx, y, solid: false })
+    }
   }
   for (let y = 2; y <= 10; y++)
-    for (let x = 100; x <= 115; x++) {
+    for (let x = 100 + MOUNTAIN_DX; x <= 115 + MOUNTAIN_DX; x++) {
       if (B.get(x, y) !== T.Grass || B.isTaken(x, y)) continue
       const wet = [B.get(x + 1, y), B.get(x - 1, y), B.get(x, y + 1), B.get(x, y - 1)].includes(T.Water)
       if (wet && r() < 0.5) B.prop({ kind: 'iris', x, y, solid: false })

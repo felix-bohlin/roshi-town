@@ -17,7 +17,11 @@ const NAMED: Record<string, string[]> = {
   temple: ['hondoFront', 'incense', 'graves', 'pagodaFront', 'stairsBottom', 'stairsTop', 'sanmonFront', 'templePond', 'chayaFront', 'waterfall', 'hikeLanding1'],
   approach: ['dangoFront', 'stairsBottom'],
   farm: ['farmRoad', 'gonbeiStep', 'oxGate', 'shrineFront', 'eastRoad', 'riverbank'],
-  camp: ['campFireW', 'campFireS', 'campEdge', 'campN', 'farmRoad', 'westGateGuard'],
+  camp: ['campFireW', 'campFireS', 'campEdge', 'campN', 'farmRoad', 'westRoad'],
+  shiomachi: ['netMend', 'quayE', 'pierE'],
+  inaba: ['farmRoad', 'gonbeiStep', 'kiyoStep', 'westRoad'],
+  hamana: ['beachWestSpot', 'southRoad', 'hamanaRoad'],
+  okitsu: ['eastRoad', 'shrineFront', 'riverbank'],
 }
 
 type Group = keyof typeof NAMED
@@ -97,7 +101,7 @@ const ROLES: Role[] = [
   {
     title: 'porter',
     names: ['A porter', 'A dock hand', 'A carrier'],
-    homes: ['harbour', 'crafts'],
+    homes: ['harbour', 'crafts', 'shiomachi'],
     haunts: ['harbour', 'harbour', 'town'],
     look: (r) => ({ ...commoner(r, 'short', 'hachimaki'), legs: '#f2c9a0' }),
     weight: 12,
@@ -125,8 +129,8 @@ const ROLES: Role[] = [
   {
     title: 'fisherman',
     names: ['A fisherman', 'An old fisherman', 'A net mender'],
-    homes: ['harbour'],
-    haunts: ['harbour', 'harbour', 'harbour', 'town'],
+    homes: ['harbour', 'shiomachi'],
+    haunts: ['harbour', 'shiomachi', 'shiomachi', 'town'],
     look: (r) => ({ ...commoner(r, pick(r, ['short', 'bald'] as Hair[]), pick(r, ['kasa', 'tenugui'] as Hat[]), ['creel']), legs: '#f2c9a0' }),
     weight: 8,
     talk: ['The sea gives, the sea takes, the fish market takes a cut.', 'Bonito running early this year. The sea’s in a good mood. Enjoy it while it lasts.'],
@@ -186,8 +190,8 @@ const ROLES: Role[] = [
   {
     title: 'gambler',
     names: ['A gambler', 'A dice man', 'A man with a scar and a smile'],
-    homes: ['inns', 'crafts'],
-    haunts: ['inns', 'inns', 'harbour'],
+    homes: ['inns', 'shiomachi'],
+    haunts: ['inns', 'shiomachi', 'harbour'],
     look: (r) => ({ ...commoner(r, 'short', undefined), robe: pick(r, ['#5a2a2a', '#2a2a2a', '#4a3a5a']), robeShade: '#1e1a1e' }),
     weight: 4,
     nightOwl: true,
@@ -280,6 +284,20 @@ const ROLES: Role[] = [
     talk: ['I walk from temple to temple. Every road is the right road. Some are just longer. The one up this mountain is very long.', 'Alms? …You are a turtle. Never mind. Bless you, turtle.'],
   },
   {
+    title: 'villager',
+    names: ['A villager', 'A farmer’s wife', 'A fisherman’s daughter', 'An old villager'],
+    homes: ['inaba', 'hamana', 'okitsu'],
+    haunts: ['inaba', 'hamana', 'okitsu'],
+    look: (r) => ({ ...commoner(r, pick(r, ['short', 'bun', 'grayBun'] as Hair[]), pick(r, ['kasa', 'tenugui', undefined] as (Hat | undefined)[])), legs: '#f2c9a0' }),
+    weight: 10,
+    talk: [
+      'Kumoi? Too many people, too many stairs, too many samurai. We go once a month to sell and once a year to pray.',
+      'The city folk think we’re simple. We think they’re loud. We’re both right.',
+      'A turtle all the way out here? Did the city get too much for you too?',
+    ],
+    barks: ['Morning!', 'Rain later, my knee says.'],
+  },
+  {
     title: 'farmhand',
     names: ['A farmhand', 'A young farmer', 'A woman with a hoe'],
     homes: ['door:farmB', 'door:farmC', 'door:gonbei', 'door:kiyo'],
@@ -299,12 +317,18 @@ function homeFor(world: World, r: Rng, role: Role): string {
   return doors.length ? pick(r, doors) : 'westEdge'
 }
 
-function route(world: World, r: Rng, role: Role, n: number): string[] {
+/** The neighbourhood a home door belongs to, if it's one the role wanders. */
+function homeGroup(world: World, role: Role, door: string): Group | null {
+  for (const g of role.haunts) if (world.homes[g]?.includes(door)) return g
+  return null
+}
+
+function route(world: World, r: Rng, role: Role, n: number, local: Group | null): string[] {
   const out: string[] = []
-  const home = pick(r, role.haunts)
+  const home = local ?? pick(r, role.haunts)
   for (let k = 0; k < n; k++) {
-    // Mostly their own neighbourhood; now and then somewhere else they go.
-    const g = r() < 0.7 ? home : pick(r, role.haunts)
+    // Mostly their own neighbourhood; now and then somewhere else they go (villagers stay home).
+    const g = r() < (role.title === 'villager' ? 1 : 0.7) ? home : pick(r, role.haunts)
     const pool = [...(world.spots[g] ?? []), ...NAMED[g].filter((p) => world.places[p])]
     if (pool.length) out.push(pick(r, pool))
   }
@@ -370,21 +394,23 @@ export function makeExtras(world: World, count = 155): VillagerSpec[] {
       k -= rl.weight
     }
     const look = role.look(r)
+    const homeAt = homeFor(world, r, role)
+    const local = homeGroup(world, role, homeAt)
     const min = () => String(Math.floor(r() * 6) * 10).padStart(2, '0')
     const wait = () => 4 + Math.floor(r() * 10)
     const schedule: Entry[] = role.nightOwl
       ? [
-          { at: '00:00', label: 'out late', doing: patrol(route(world, r, role, 5), undefined, 'stand', wait()) },
+          { at: '00:00', label: 'out late', doing: patrol(route(world, r, role, 5, local), undefined, 'stand', wait()) },
           asleep(`0${1 + Math.floor(r() * 2)}:${min()}`),
-          { at: `${10 + Math.floor(r() * 2)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 5), undefined, 'stand', wait()) },
+          { at: `${10 + Math.floor(r() * 2)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 5, local), undefined, 'stand', wait()) },
           home(`${14 + Math.floor(r() * 2)}:${min()}`, 'resting'),
-          { at: `${17 + Math.floor(r() * 2)}:${min()}`, label: 'out for the evening', doing: patrol(route(world, r, role, 6), undefined, 'stand', wait()) },
+          { at: `${17 + Math.floor(r() * 2)}:${min()}`, label: 'out for the evening', doing: patrol(route(world, r, role, 6, local), undefined, 'stand', wait()) },
         ]
       : [
           asleep(),
-          { at: `0${5 + Math.floor(r() * 4)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 6), undefined, 'stand', wait()) },
+          { at: `0${5 + Math.floor(r() * 4)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 6, local), undefined, 'stand', wait()) },
           home(`${11 + Math.floor(r() * 2)}:${min()}`, 'lunch'),
-          { at: `${12 + Math.floor(r() * 2)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 6), undefined, 'stand', wait()) },
+          { at: `${12 + Math.floor(r() * 2)}:${min()}`, label: 'out and about', doing: patrol(route(world, r, role, 6, local), undefined, 'stand', wait()) },
           home(`${17 + Math.floor(r() * 3)}:${min()}`),
           asleep(`2${Math.floor(r() * 3)}:00`),
         ]
@@ -392,7 +418,7 @@ export function makeExtras(world: World, count = 155): VillagerSpec[] {
       id: `extra${i}`,
       name: pick(r, role.names),
       title: role.title,
-      home: homeFor(world, r, role),
+      home: homeAt,
       look,
       color: '#8a8070',
       speed: look.kid ? 38 : 24 + Math.floor(r() * 10),

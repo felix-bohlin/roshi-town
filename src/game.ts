@@ -95,6 +95,9 @@ function umbrella(i: number): HTMLCanvasElement {
   return c
 }
 
+/** The merchant ship sails between the map edge and here (px), in the open western sea. */
+const SAIL_X1 = 56 * TILE
+
 /** Map overlay resolution, pixels per tile. */
 const MAP_PX = 4
 
@@ -367,12 +370,13 @@ export class Game {
       this.sailIn -= dt
       if (this.sailIn <= 0) {
         const fromLeft = this.r() < 0.5
-        this.sail = { x: fromLeft ? -120 : this.world.w * TILE + 120, y: (this.world.h - 2) * TILE, speed: fromLeft ? 11 : -11 }
+        // Across the open sea west of the city, past Roshi's island.
+        this.sail = { x: fromLeft ? -120 : SAIL_X1 + 60, y: 132 * TILE, speed: fromLeft ? 11 : -11 }
       }
       return
     }
     this.sail.x += this.sail.speed * dt
-    if (this.sail.x < -200 || this.sail.x > this.world.w * TILE + 200) {
+    if (this.sail.x < -200 || this.sail.x > SAIL_X1 + 80) {
       this.sail = null
       this.sailIn = 120 + this.r() * 180
     }
@@ -753,7 +757,7 @@ export class Game {
         }
         if (rain > 0.05) this.rainRings(ctx, ox, oy, TILE, TILE, tx * 131 + ty, rain)
         // The river (and the mountain stream) flows south.
-        if (tile === T.Water && (tx > 240 || (tx >= 126 && tx <= 127 && ty < 31)) && northWater) {
+        if (tile === T.Water && tx > 280 && northWater) {
           const h = hash(tx, ty, 70)
           const fy = (t * 9 + h * 16) % 16
           ctx.globalAlpha = 0.45
