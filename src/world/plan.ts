@@ -8,9 +8,6 @@
 import { pick, type Rng } from '../engine/rng'
 import { T, type Builder, type Building, type BuildingKind, type Pt } from './layout'
 
-/** The mountain's axis: the temple approach road, the first and last flights, the temple gate. */
-export const AVE_X = 320
-
 export function rect(x: number, y: number, w: number, h: number): Pt[] {
   const out: Pt[] = []
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) out.push({ x: i, y: j })

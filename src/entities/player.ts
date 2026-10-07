@@ -44,7 +44,6 @@ export class Player {
       this.hidden = !this.hidden
       this.hiddenFor = 0
       if (this.hidden) g.speech.floater(this.x, this.y - 12, '*fwump*', '#c4ccfa')
-      else g.mischief.onUnhide()
     }
     const a = input.axis()
     const wants = Math.hypot(a.x, a.y) > 0.1
@@ -54,7 +53,6 @@ export class Player {
       if (this.popOut > 0.25) {
         this.hidden = false
         this.popOut = 0
-        g.mischief.onUnhide()
       } else return
     }
     if (!wants) return
@@ -62,7 +60,7 @@ export class Player {
     const here = tileOf(this.x, this.y)
     const stairs = g.world.tiles[idx(here.x, here.y)] === T.Stairs
     // Stairs are hard work on four short legs.
-    const speed = (this.swimming ? SWIM : input.down('ShiftLeft', 'ShiftRight') ? HURRY : WALK) * (stairs ? 0.5 : 1) * (g.mischief.carried ? 0.85 : 1)
+    const speed = (this.swimming ? SWIM : input.down('ShiftLeft', 'ShiftRight') ? HURRY : WALK) * (stairs ? 0.5 : 1)
     const dx = a.x * speed * dt
     const dy = a.y * speed * dt
     const before = { x: this.x, y: this.y }
@@ -77,7 +75,6 @@ export class Player {
     const t = tileOf(this.x, this.y)
     const wasSwimming = this.swimming
     this.swimming = isWet(g.world.tiles[idx(t.x, t.y)])
-    if (wasSwimming && !this.swimming) g.mischief.onEmerge()
     if (this.swimming && !wasSwimming) {
       g.fx.splash(this.x, this.y)
       g.speech.floater(this.x, this.y - 10, '*plop*', '#cfe8f0')

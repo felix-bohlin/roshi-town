@@ -23,8 +23,6 @@ import { Animal, spawnAnimals } from './entities/animals'
 import { Player } from './entities/player'
 import { Villager } from './entities/villager'
 import { Fx } from './fx'
-import { Mischief } from './mischief/mischief'
-import { drawTodo } from './ui/todo'
 import { ambientAt, darknessOf, Lighting } from './lighting'
 import { CAST } from './sim/cast'
 import { makeExtras } from './sim/extras'
@@ -97,14 +95,14 @@ function umbrella(i: number): HTMLCanvasElement {
   return c
 }
 
-/** The merchant ship sails between the map edge and here (px), in the open western sea. */
-const SAIL_X1 = 56 * TILE
+/** The merchant ship sails across the bay south of Roshi's island, at this row. */
+const SAIL_Y = 194 * TILE
 
 /** Map overlay resolution, pixels per tile. */
 const MAP_PX = 4
 
 const HINT =
-  'WASD: walk · Shift: hurry · Space: hide in shell · F: snap · E: talk & look · Tab: to-do · M: map · H: help'
+  'WASD / arrows: walk · Shift: hurry · Space: hide in shell · E: talk & look · M: map · [ ]: time speed · R: weather · H: help'
 
 export class Game {
   readonly screen: Screen
@@ -119,7 +117,6 @@ export class Game {
   readonly player: Player
   readonly villagers: Villager[]
   readonly animals: Animal[]
-  readonly mischief: Mischief
   time = 0
   camX = 0
   camY = 0
@@ -127,7 +124,6 @@ export class Game {
   title = true
   showMap = false
   showHelp = false
-  showTodo = false
   debug = false
   musicOn = true
   /** Counters for tests and the debug view. */
@@ -168,7 +164,6 @@ export class Game {
       this.residents.set(id, [...(this.residents.get(id) ?? []), v])
     }
     this.animals = spawnAnimals(this)
-    this.mischief = new Mischief(this)
     this.buildStatics()
     this.spawnKoi()
     this.roshi = fromGrid(HERMIT, HERMIT_PALETTE)
@@ -309,8 +304,6 @@ export class Game {
     if (input.pressed('BracketRight', 'Equal', 'NumpadAdd')) this.clock.faster()
     if (input.pressed('BracketLeft', 'Minus', 'NumpadSubtract')) this.clock.slower()
     if (input.pressed('KeyP')) this.clock.paused = !this.clock.paused
-    if (input.pressed('Tab')) this.showTodo = !this.showTodo
-    if (input.pressed('KeyF') && !this.dialog && !this.showMap && !this.showHelp) this.mischief.snap()
     if (input.pressed('KeyR')) this.speech.floater(this.player.x, this.player.y - 28, WEATHER_SAY[this.weather.cycle()], '#c8d4dc')
 
     if (this.dialog) {
@@ -333,7 +326,6 @@ export class Game {
     const adt = simDt > 0 ? dt : 0
     for (const a of this.animals) a.update(this, adt, simDt)
     this.updateKoi(adt)
-    if (!frozen) this.mischief.update(dt)
     this.fx.update(dt, this.world, this.clock.minutes, { x: this.camX, y: this.camY, w: this.screen.w, h: this.screen.h })
     this.speech.update(dt)
     this.emitSmoke(dt)
@@ -378,13 +370,13 @@ export class Game {
       this.sailIn -= dt
       if (this.sailIn <= 0) {
         const fromLeft = this.r() < 0.5
-        // Across the open sea west of the city, past Roshi's island.
-        this.sail = { x: fromLeft ? -120 : SAIL_X1 + 60, y: 132 * TILE, speed: fromLeft ? 11 : -11 }
+        // Across the bay, past Roshi's island.
+        this.sail = { x: fromLeft ? -120 : this.world.w * TILE + 60, y: SAIL_Y, speed: fromLeft ? 11 : -11 }
       }
       return
     }
     this.sail.x += this.sail.speed * dt
-    if (this.sail.x < -200 || this.sail.x > SAIL_X1 + 80) {
+    if (this.sail.x < -200 || this.sail.x > this.world.w * TILE + 80) {
       this.sail = null
       this.sailIn = 120 + this.r() * 180
     }
@@ -427,7 +419,6 @@ export class Game {
         if (h.action === 'help') this.showHelp = true
         if (h.action === 'music') this.toggleMusic()
         if (h.action === 'speed') this.clock.cycle()
-        if (h.action === 'todo') this.showTodo = !this.showTodo
         return true
       }
     return false
@@ -474,17 +465,6 @@ export class Game {
     const bi = this.grid.buildingAt[idx(t.x, t.y)]
     if (bi) {
       const b = this.world.buildings[bi - 1]
-      if (b.id === 'watchtower') {
-        this.mischief.ringFireBell({ x: (b.x + 1.5) * TILE, y: (b.y + b.h) * TILE })
-        this.dialog = new Dialog({ name: b.name, pages: ['You take the bell rope in your jaws and pull with all four legs.', 'CLANG. CLANG. CLANG. Somewhere, Seiroku drops his tea.'] })
-        return
-      }
-      if (b.id === 'belltower') {
-        this.mischief.ringTempleBell()
-        this.speech.floater((b.x + 2) * TILE, b.y * TILE, 'GOOONNNNG…', '#e0b13c')
-        this.dialog = new Dialog({ name: b.name, pages: ['You throw your whole shell against the striking log. It swings. The great bell answers.', 'Down the mountain, a thousand people look up and wonder what time it is.'] })
-        return
-      }
       this.dialog = new Dialog({ name: b.name, pages: Array.isArray(b.text) ? b.text : [b.text] })
     }
   }
@@ -594,7 +574,6 @@ export class Game {
       items.push({ sortY: f.y, draw: () => this.drawSprite(ctx, stallSprite(), f.x - 8, f.y, camX, camY, false) })
     }
     items.push({ sortY: p.y, draw: () => this.drawPlayer(ctx, camX, camY) })
-    items.push(...this.mischief.drawables(ctx, camX, camY))
     const sail = this.sail
     if (sail && sail.x > camX - 200 && sail.x < camX + s.w + 200 && sail.y < vy1 + 140) {
       const art = propArt({ kind: 'ship', x: 0, y: 0, solid: false }, 0)
@@ -650,17 +629,13 @@ export class Game {
     this.speech.draw(s, camX, camY, (who: Speaker) => who instanceof Villager && who.inside)
     this.hits = []
     if (!this.title) {
-      drawHud(s, this.clock, this.musicOn, this.hits, `TO DO ${this.mischief.todo.count}/${this.mischief.todo.total}`)
+      drawHud(s, this.clock, this.musicOn, this.hits)
       drawBanner(s, this.district, this.bannerT)
       const hintAlpha = this.hintT < 30 ? 1 : Math.max(0, 1 - (this.hintT - 30) / 3)
       if (!this.dialog) drawHint(s, HINT, hintAlpha)
     }
     if (this.dialog) this.dialog.draw(s)
     if (this.showMap) drawMap(s, this.mapSnapshot(), this.world.w * TILE, this.mapMarkers(), this.player, this.clock, this.time)
-    if (!this.title && !this.showMap) {
-      const since = this.time - this.mischief.todo.changedAt
-      drawTodo(s, this.mischief.todo, this.time, this.showTodo ? 1 : since < 4 ? Math.min(1, (4 - since) * 2) : 0)
-    }
     if (this.showHelp) drawHelp(s)
     if (this.title) drawTitle(s, this.roshi, this.time)
     if (this.debug) this.drawDebugText()
@@ -738,9 +713,7 @@ export class Game {
     ctx.globalAlpha = 0.25
     ellipse(ctx, p.x - camX, p.y - camY, 7, 2, '#10140c')
     ctx.globalAlpha = 1
-    if (p.dir === 'up') this.mischief.drawCarried(ctx, camX, camY)
     ctx.drawImage(sp.img, x, y)
-    if (p.dir !== 'up') this.mischief.drawCarried(ctx, camX, camY)
   }
 
   private drawWater(ctx: Ctx, camX: number, camY: number): void {
@@ -784,7 +757,7 @@ export class Game {
         }
         if (rain > 0.05) this.rainRings(ctx, ox, oy, TILE, TILE, tx * 131 + ty, rain)
         // The river (and the mountain stream) flows south.
-        if (tile === T.Water && tx > 280 && northWater) {
+        if (this.world.flow[idx(tx, ty)] && northWater) {
           const h = hash(tx, ty, 70)
           const fy = (t * 9 + h * 16) % 16
           ctx.globalAlpha = 0.45

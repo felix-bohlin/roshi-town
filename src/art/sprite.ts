@@ -18,7 +18,7 @@ export interface BuildOpts {
 export function build(w: number, h: number, body: (ctx: Ctx) => void, opts: BuildOpts = {}): HTMLCanvasElement {
   const [c, ctx] = canvas(w, h)
   body(ctx)
-  mute(c, 0.14)
+  mute(c, 0.04)
   if (opts.outline) outline(c, opts.outline)
   if (opts.shadow) {
     const s = opts.shadow

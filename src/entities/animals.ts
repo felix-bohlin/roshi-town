@@ -894,19 +894,18 @@ export function spawnAnimals(g: Game): Animal[] {
     out.push(d)
   }
   // Frogs on the paddy levees and by the temple pond.
-  const frogSpots: Pt[] = [
-    { x: 8, y: 66 },
-    { x: 14, y: 75 },
-    { x: 20, y: 86 },
-    { x: 8, y: 90 },
-    { x: 14, y: 98 },
-    { x: 20, y: 103 },
-    { x: 2, y: 94 },
-    { x: 100, y: 6 },
-    { x: 114, y: 5 },
-    { x: 123, y: 34 },
-    { x: 130, y: 34 },
-  ]
+  const nearWater = (area: string, n: number): Pt[] => {
+    const a = g.world.areas[area]
+    const out: Pt[] = []
+    for (let y = a.y - 1; y <= a.y + a.h; y++)
+      for (let x = a.x - 1; x <= a.x + a.w; x++) {
+        const i = idx(x, y)
+        if (x < 0 || y < 0 || x >= g.world.w || y >= g.world.h || g.grid.solidNpc[i] || g.world.tiles[i] === T.Paddy) continue
+        if ([idx(x + 1, y), idx(x - 1, y), idx(x, y + 1), idx(x, y - 1)].some((j) => g.world.tiles[j] === T.Paddy || g.world.tiles[j] === T.Water)) out.push({ x, y })
+      }
+    return Array.from({ length: n }, (_, k) => out[Math.floor(((k + 0.5) / n) * out.length)]).filter(Boolean)
+  }
+  const frogSpots: Pt[] = [...nearWater('paddies', 7), ...nearWater('templePond', 4)]
   frogSpots.forEach((t, i) => {
     const f = tileFeet(t)
     const frog = new Animal('frog', f.x + (i % 3) * 3 - 3, f.y, 600 + i, 'Frog', ['The frog says nothing. The frog has said everything it needs to say.'])

@@ -128,9 +128,9 @@ export class Weather {
   grade(): string {
     const q = (v: number) => Math.round(v * 50) / 50
     // Clear days keep most of their colour; rain washes it out.
-    const sat = q(0.92 - this.cloud * 0.2 - this.rain * 0.08)
-    const bri = q(1 - this.rain * 0.06)
-    return `saturate(${sat}) contrast(1.06) brightness(${bri}) sepia(0.08)`
+    const sat = q(1.0 - this.cloud * 0.2 - this.rain * 0.1)
+    const bri = q(1.03 - this.rain * 0.07)
+    return `saturate(${sat}) contrast(1.04) brightness(${bri}) sepia(0.03)`
   }
 
   /** Drifting mist, drawn over the world before the light map. */

@@ -2,8 +2,8 @@
 // scripts/check.ts can validate the town in node.
 
 export const TILE = 16
-const MAP_W = 400
-const MAP_H = 320
+const MAP_W = 240
+const MAP_H = 200
 
 export const T = {
   Grass: 0,
@@ -148,6 +148,7 @@ type PropKind =
   | 'kago'
   | 'campfire'
   | 'bedroll'
+  | 'flowers'
 
 export interface Prop {
   kind: PropKind
@@ -193,6 +194,8 @@ export interface World {
   spots: Record<string, string[]>
   /** Doors of generated houses people live in, by neighbourhood. */
   homes: Record<string, string[]>
+  /** 1 where water runs downhill (the river and the mountain stream), for the ripple animation. */
+  flow: Uint8Array
 }
 
 export const idx = (x: number, y: number) => y * MAP_W + x

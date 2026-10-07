@@ -11,7 +11,7 @@
 //   y 19–21   flight D up the summit cliff to the temple gate
 //   y 2–18    the temple plateau: gate, main hall, pagoda, bell, pond, graveyard
 //
-// About 140 tiles of walking from the North Gate bridge to the temple gate, most of it stairs (which
+// About 140 tiles of walking from the north barrier to the temple gate, most of it stairs (which
 // slow everybody down). It's meant to feel like a hike.
 
 import { rng } from '../engine/rng'
@@ -88,7 +88,7 @@ function hike(B: Builder): void {
   B.spot('temple', 'spot:pool', 131, 35, 'up')
   const chaya = B.building({ id: 'chaya', kind: 'teahouse', name: 'Halfway teahouse', x: 170, y: 28, w: 7, h: 4, doorX: 173, litHours: [[1080, 1260]], text: ['The halfway teahouse. "HALF WAY!" says the sign. A smaller sign below: "(roughly)".', 'The old woman who runs it has climbed the mountain every day for forty years. Her calves could crack walnuts.'] })
   B.place('chayaFront', chaya.door.x, chaya.door.y + 1, 'down')
-  for (const x of [168, 178]) B.prop({ kind: 'bench', x, y: 35, w: 2, solid: false, name: 'Bench', text: 'A bench at the edge of the landing. Below you: the whole city, the castle, the harbour, the sea, and very small people being very busy.' })
+  for (const x of [168, 178]) B.prop({ kind: 'bench', x, y: 35, w: 2, solid: true, npcSolid: false, name: 'Bench', text: 'A bench at the edge of the landing. Below you: the whole city, the castle, the harbour, the sea, and very small people being very busy.' })
   B.spot('temple', 'spot:view', 168, 35, 'down')
   B.spot('temple', 'spot:chaya', 174, 33, 'down')
   B.prop({ kind: 'nobori', x: 177, y: 32, solid: true, name: 'Banner', text: 'A banner: 力餅 (strength mochi). For the second half. You will need it.' })
@@ -173,7 +173,7 @@ function plateau(B: Builder): void {
   B.area('stairs', A, 19, 23, 15, [T.Stairs])
 }
 
-/** The temple town between the North Gate bridge and the foot of the mountain. */
+/** The temple village at the foot of the mountain, above Kumoi. */
 function approach(B: Builder): void {
   B.fill(A, 66, 4, 14, T.Road)
   B.fill(100, 76, 85, 2, T.Road)

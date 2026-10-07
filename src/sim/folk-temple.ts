@@ -13,7 +13,7 @@ export const TEMPLE: VillagerSpec[] = [
     look: { hair: 'bald', hat: 'tokin', robe: '#e2d8b4', robeShade: '#b9ad86', sash: '#6a4a8a', legs: '#e2d8b4', collar: '#c0262f', extras: ['pompoms'] },
     schedule: [
       asleep(),
-      { at: '05:30', label: 'blowing the conch over the town', doing: spot('stairsTop', 'conch') },
+      { at: '05:30', label: 'blowing the conch over the valley', doing: spot('stairsTop', 'conch') },
       { at: '06:15', label: 'meditating by the pagoda', doing: spot('pagodaFront', 'meditate') },
       { at: '09:00', label: 'begging alms in the square', doing: spot('notice', 'alms') },
       { at: '12:00', label: '"meditating" (napping) at the shrine', doing: spot('inariFront', 'nap') },
@@ -110,7 +110,7 @@ export const TEMPLE: VillagerSpec[] = [
       { at: '06:00', label: 'seeing the turtle off (shouting)', doing: spot('roshiShore', 'stand') },
       home('08:00', 'reading (do not ask what)'),
       { at: '09:00', label: 'napping in his beach chair', doing: spot('roshiChair', 'nap') },
-      { at: '12:00', label: 'staring at the town, thirsty', doing: spot('roshiShore', 'stand') },
+      { at: '12:00', label: 'staring at the harbour, thirsty', doing: spot('roshiShore', 'stand') },
       { at: '13:00', label: 'napping in his beach chair', doing: spot('roshiChair', 'nap') },
       { at: '16:00', label: 'doing "exercises"', doing: wander('island', 'stand') },
       home('19:00', 'reading (still do not ask)'),

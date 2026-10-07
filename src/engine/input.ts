@@ -1,5 +1,5 @@
 // Keyboard plus a minimal touch scheme: drag anywhere to walk (virtual stick from where the finger
-// landed), tap to talk/inspect, double-tap to hide in the shell, long-press to snap. UI hit areas get first claim on taps.
+// landed), tap to talk/inspect, double-tap to hide in the shell. UI hit areas get first claim on taps.
 
 const held = new Set<string>()
 const pressed = new Set<string>()
@@ -36,10 +36,7 @@ export function installInput(el: HTMLElement): void {
   })
   const end = (e: PointerEvent) => {
     if (!stick || e.pointerId !== stick.id) return
-    const held = performance.now() - stick.t0
-    const quick = held < 300
-    // Long press: snap.
-    if (!stick.moved && held > 450 && !tapHandler?.(stick.x, stick.y)) pressed.add('KeyF')
+    const quick = performance.now() - stick.t0 < 300
     if (!stick.moved && quick) {
       if (!tapHandler?.(stick.x, stick.y)) {
         const now = performance.now()

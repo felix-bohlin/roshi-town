@@ -1,19 +1,10 @@
-// The organic settlement generator: how Kumoi and the villages around the bay are grown.
-//
-//   1. bridges and gates are laid where the plan says (bridge, gate)
-//   2. walls follow the real coastline, with towers every so often (coastWalls); harbours get quays
-//      and piers instead (docks)
-//   3. streets are carved by a path search over noise between gates, plazas, named buildings and
-//      scattered points, so they wind, merge and branch like streets that grew (streets)
-//   4. houses are packed in wherever their door can reach a street (lots); any whose door ends up
-//      cut off is taken out again (prune)
-//   5. what's left over becomes courtyards and yards: trees, wells, laundry (yards)
+// Helpers for building villages: bridges and gates, packing houses along the lanes (lots) and
+// taking out any whose door ended up cut off (prune), and dressing leftover ground (yards).
 //
 // Buildings are drawn front-on with the door at the bottom, so a lot only needs a street (or the
 // tile in front of its door) below it; streets may run any way.
 
-import { astar } from '../engine/path'
-import { hash, noise, pick, type Rng } from '../engine/rng'
+import { hash, pick, type Rng } from '../engine/rng'
 import { idx, isWet, T, type Builder, type Building, type Pt, type TreeKind } from './layout'
 import type { Lot } from './plan'
 import { rect } from './plan'
@@ -22,7 +13,6 @@ import type { Dir } from './layout'
 const STREETS = new Set<number>([T.Road, T.Stone, T.Gravel, T.Bridge, T.Pier])
 /** House kinds that look fine a little narrower or lower than asked. */
 const FLEX = new Set<string>(['machiya', 'nagaya', 'minka', 'minkaOld', 'cottage', 'kura'])
-export const isStreet = (t: number) => STREETS.has(t)
 
 // ---------------------------------------------------------------------------------------------
 // Bridges and gates
@@ -59,7 +49,7 @@ export function bridge(B: Builder, x0: number, y0: number, x1: number, y1: numbe
 }
 
 /**
- * A town gate where a bridge lands on a walled coast. `land` is the first land tile off the bridge
+ * A gate in a wall (or over a moat), where a road or bridge passes through. `land` is the first land tile off the bridge
  * (its left/top column); `toWater` the direction from the land out over the bridge.
  */
 export function gate(B: Builder, id: string, name: string, land: Pt, toWater: Dir, bw: number, text: string[], variant?: string): Building {
@@ -104,11 +94,7 @@ function makeGate(B: Builder, id: string, name: string, land: Pt, toWater: Dir, 
   })
 }
 
-// ---------------------------------------------------------------------------------------------
-// Walls and docks
-// ---------------------------------------------------------------------------------------------
 
-const SEAISH = (t: number) => t === T.Sea || t === T.Moat
 const N4: [number, number][] = [
   [1, 0],
   [-1, 0],
@@ -116,157 +102,6 @@ const N4: [number, number][] = [
   [0, -1],
 ]
 
-/** Walls along every walled coast tile facing the sea, with a tower every `every` tiles or so. */
-export function coastWalls(B: Builder, walled: (x: number, y: number) => boolean, skip: (x: number, y: number) => boolean, every = 16): void {
-  const coast: Pt[] = []
-  for (let y = 1; y < B.h - 1; y++)
-    for (let x = 1; x < B.w - 1; x++) {
-      // Only open town ground gets a wall (gate passages and quays are paved).
-      if (!walled(x, y) || B.get(x, y) !== T.Plaza || skip(x, y)) continue
-      if (N4.some(([dx, dy]) => SEAISH(B.get(x + dx, y + dy)))) coast.push({ x, y })
-    }
-  const towers: Pt[] = []
-  let n = 0
-  for (const c of coast) {
-    if (towers.some((t) => Math.abs(t.x - c.x) + Math.abs(t.y - c.y) < every)) continue
-    const x0 = c.x - 1
-    const y0 = c.y - 1
-    let ok = true
-    for (let y = y0; y < y0 + 3 && ok; y++) for (let x = x0; x < x0 + 3 && ok; x++) if (!walled(x, y) || isWet(B.get(x, y)) || B.isTaken(x, y) || B.get(x, y) === T.Bridge) ok = false
-    if (!ok) continue
-    towers.push(c)
-    B.building({ id: `tower${++n}`, kind: 'tower', name: 'Wall tower', x: x0, y: y0, w: 3, h: 3, door: { x: c.x, y: y0 + 3 }, text: 'A tower on the town wall. An archer up there is watching the sea. Mostly he is watching the fish market.', litHours: [[1110, 1350]] })
-  }
-  const text = 'The town wall: river stones below, white plaster above, clay tiles on top. Turtles: not allowed over.'
-  for (const c of coast) if (!B.isTaken(c.x, c.y)) B.prop({ kind: 'wall', x: c.x, y: c.y, solid: true, name: 'Town wall', text })
-}
-
-/**
- * Harbour fronts: coast tiles in the dock zone become a stone quay, and piers run out into the sea
- * every so often, some with a boat tied up.
- */
-export function docks(B: Builder, r: Rng, inDock: (x: number, y: number) => boolean, o: { every?: number; maxLen?: number; boats?: number } = {}): Pt[] {
-  const quay: { x: number; y: number; d: [number, number] }[] = []
-  for (let y = 1; y < B.h - 1; y++)
-    for (let x = 1; x < B.w - 1; x++) {
-      if (!inDock(x, y) || isWet(B.get(x, y)) || B.isTaken(x, y) || B.get(x, y) === T.Bridge) continue
-      const d = N4.find(([dx, dy]) => B.get(x + dx, y + dy) === T.Sea)
-      if (!d) continue
-      B.set(x, y, T.Stone)
-      quay.push({ x, y, d })
-    }
-  const roots: Pt[] = []
-  const every = o.every ?? 9
-  for (const q of quay) {
-    if (roots.some((p) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y) < every)) continue
-    const [dx, dy] = q.d
-    const len = 4 + Math.floor(r() * ((o.maxLen ?? 9) - 3))
-    // Stop short of the far shore.
-    let k = 1
-    while (k <= len && B.get(q.x + dx * k, q.y + dy * k) === T.Sea && B.get(q.x + dx * (k + 2), q.y + dy * (k + 2)) === T.Sea) k++
-    if (k < 4) continue
-    roots.push(q)
-    const px = dy !== 0 ? 1 : 0
-    const py = dx !== 0 ? 1 : 0
-    for (let s = 1; s < k; s++) {
-      B.set(q.x + dx * s, q.y + dy * s, T.Pier)
-      if (B.get(q.x + dx * s + px, q.y + dy * s + py) === T.Sea) B.set(q.x + dx * s + px, q.y + dy * s + py, T.Pier)
-    }
-    if (r() < (o.boats ?? 0.6)) {
-      const bx = q.x + dx * (k - 2) - px * 2
-      const by = q.y + dy * (k - 2) - py * 2
-      if (B.get(bx, by) === T.Sea && !B.isTaken(bx, by)) B.prop({ kind: 'boat', x: bx, y: by, solid: true, name: 'Fishing boat', text: pick(r, BOAT_TEXT) })
-    }
-  }
-  return roots
-}
-
-const BOAT_TEXT = [
-  'A fishing boat, rocking gently. It smells of fish and very old decisions.',
-  'A boat with an eye painted on the bow, so it can see where it’s going. It’s going nowhere. It’s tied up.',
-  'A little boat full of nets and one sleeping cat.',
-]
-
-// ---------------------------------------------------------------------------------------------
-// Streets
-// ---------------------------------------------------------------------------------------------
-
-export interface Waypoint extends Pt {
-  /** Street width carved towards this point. */
-  w: number
-}
-
-/**
- * Carve a street network joining `points` (the first is the hub), staying on tiles where `ok` is
- * true. Each point is joined to the nearest already-joined one by a path over noise (streets wind)
- * that prefers existing streets (streets merge). `loops` extra links close some blocks.
- */
-export function streets(B: Builder, r: Rng, ok: (i: number) => boolean, points: Waypoint[], o: { seed: number; loops: number; ground: number[]; coast: Int16Array; road?: number }): void {
-  const W = B.w
-  const ground = new Set(o.ground)
-  const road = (o.road ?? T.Road) as never
-  const cost = (i: number) => {
-    const t = B.tiles[i]
-    if (t === T.Bridge || t === T.Pier) return 1
-    if (!ok(i) || B.taken[i] || isWet(t)) return Infinity
-    if (STREETS.has(t)) return 0.45
-    if (!ground.has(t)) return Infinity
-    const x = i % W
-    const y = (i / W) | 0
-    return 1 + noise(x / 9, y / 9, o.seed) * 3.5 + noise(x / 3, y / 3, o.seed + 3) * 0.8 + (o.coast[i] <= 1 ? 8 : o.coast[i] === 2 ? 2 : 0)
-  }
-  const paint = (path: number[], w: number) => {
-    const lo = -Math.floor((w - 1) / 2)
-    for (const i of path) {
-      const x = i % W
-      const y = (i / W) | 0
-      for (let dy = lo; dy < lo + w; dy++)
-        for (let dx = lo; dx < lo + w; dx++) {
-          const j = idx(x + dx, y + dy)
-          if (!B.inside(x + dx, y + dy) || !ok(j) || B.taken[j] || !ground.has(B.tiles[j])) continue
-          B.tiles[j] = road
-        }
-    }
-  }
-  const joined: Waypoint[] = [points[0]]
-  const rest = points.slice(1)
-  const d2 = (a: Pt, b: Pt) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2
-  while (rest.length) {
-    // The waiting point nearest to the joined network goes next.
-    let bi = 0
-    let bd = Infinity
-    let bq = joined[0]
-    for (let k = 0; k < rest.length; k++)
-      for (const q of joined) {
-        const d = d2(rest[k], q)
-        if (d < bd) [bi, bd, bq] = [k, d, q]
-      }
-    const p = rest.splice(bi, 1)[0]
-    const path = astar(W, B.h, cost, idx(p.x, p.y), idx(bq.x, bq.y), 400000)
-    if (path) paint([idx(p.x, p.y), ...path], Math.max(p.w, Math.min(bq.w, p.w + 1)))
-    joined.push(p)
-  }
-  for (let k = 0; k < o.loops; k++) {
-    const a = pick(r, points)
-    const near = points.filter((b) => b !== a && d2(a, b) > 12 ** 2 && d2(a, b) < 40 ** 2)
-    if (!near.length) continue
-    const b = pick(r, near)
-    const path = astar(W, B.h, cost, idx(a.x, a.y), idx(b.x, b.y), 200000)
-    if (path) paint(path, 1 + (r() < 0.3 ? 1 : 0))
-  }
-}
-
-/** Points spread over the tiles where `ok` holds, roughly `spacing` apart (for street coverage). */
-export function scatterPoints(B: Builder, r: Rng, ok: (x: number, y: number) => boolean, spacing: number, w = 1): Waypoint[] {
-  const out: Waypoint[] = []
-  for (let y = 0; y < B.h; y += spacing)
-    for (let x = 0; x < B.w; x += spacing) {
-      const px = x + Math.floor(r() * spacing)
-      const py = y + Math.floor(r() * spacing)
-      if (B.inside(px, py) && ok(px, py) && !B.isTaken(px, py)) out.push({ x: px, y: py, w })
-    }
-  return out
-}
 
 // ---------------------------------------------------------------------------------------------
 // Lots
@@ -285,6 +120,8 @@ export interface LotOptions {
   spotEvery?: number
   /** Only doors on or right next to a street (sparser, tidier: villages). */
   nearStreet?: boolean
+  /** Tiles kept clear of other buildings and props all round (room for a garden). */
+  margin?: number
 }
 
 /** Pack houses wherever they fit with open ground (or a street) in front of the door. */
@@ -314,6 +151,9 @@ export function lots(B: Builder, r: Rng, reserved: Uint8Array, o: LotOptions): B
         if (lot.kind === 'nagaya' && w < 9) break
         let fits = true
         for (let j = y; j < y + h && fits; j++) for (let i = x; i < x + w && fits; i++) if (!free(i, j)) fits = false
+        if (!fits) continue
+        const m = o.margin ?? 0
+        for (let j = y - m; j < y + h + m && fits; j++) for (let i = x - m; i < x + w + m && fits; i++) if (B.inside(i, j) && B.taken[idx(i, j)]) fits = false
         if (!fits) continue
         const dx = x + Math.floor(w / 2)
         const dy = y + h

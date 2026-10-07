@@ -253,7 +253,7 @@ export const HARBOUR: VillagerSpec[] = [
     ],
     turtle: ['A turtle in the Octopus! Sit, sit. First cup is free. For turtles. Today only.'],
     shell: ['Somebody left a rock. It’s not the strangest thing left here. Top ten, though.'],
-    barks: { serve: ['Sake! Hot or cold?', 'Grilled squid!', 'No fighting! Outside! …Not THAT outside, the moat’s there!'], sweep: ['Squid skewers everywhere…'] },
+    barks: { serve: ['Sake! Hot or cold?', 'Grilled squid!', 'No fighting! Outside! …Not THAT outside, the sea’s there!'], sweep: ['Squid skewers everywhere…'] },
   },
   {
     id: 'jinbei',

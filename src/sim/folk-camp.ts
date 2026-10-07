@@ -1,6 +1,6 @@
-// The refugee camp outside the West Gate. Iga province was burned by Oda Nobunaga last autumn
+// The refugee camp on the common between Inaba and Kumoi. Iga province was burned by Oda Nobunaga last autumn
 // (the Tenshō Iga War, 1581); the survivors who walked to the coast live in tents of rice sacking
-// between the farm lane and the moat. The town lets them stay outside the walls. Mostly.
+// on the common by the west road. The village lets them stay. Mostly.
 
 import { asleep, chase, home, patrol, spot, type VillagerSpec } from './types'
 
@@ -23,7 +23,7 @@ export const CAMP: VillagerSpec[] = [
     talk: [
       'We are from Iga. Were. Nobunaga came last autumn with forty thousand men. Iga had farmers. Now Iga has crows.',
       'They say all Iga folk are ninja. If I were a ninja, would I be sleeping in a tent made of rice sacks?',
-      'The town lets us stay outside the walls. Inside is for people. Outside is for us, the crows and the turtle.',
+      'The village lets us camp on the common. The houses are for people. The common is for us, the crows and the turtle.',
       'Every night I count who is left. It takes less time than it used to.',
       'The steward says Lord Nobunaga is in Kyoto. Good. Kyoto is far. Further would be better.',
       'Masa thinks I don’t know what he did last autumn. I know. I still share the fire. Someone has to stop the counting.',
@@ -56,7 +56,7 @@ export const CAMP: VillagerSpec[] = [
     talk: [
       'Kurozaemon pays me in rice to scrub his barrels. Burnt rice, from the bottom of the pot. He calls it "generosity".',
       'My husband was a farmer. The soldiers said he was a ninja. Farmers are very easy to mistake for ninja, apparently. Especially dead ones.',
-      'The town folk cross the street when they see us. As if losing everything were catching.',
+      'The village folk cross the road when they see us. As if losing everything were catching.',
       'Kotaro isn’t mine. He just turned up after the fires and never left. So now he’s mine.',
     ],
     turtle: ['A turtle! Kotaro, don’t— oh, he’s in the square. Good.', 'Go on, little turtle. There’s no food here. There’s barely us here.'],
@@ -88,7 +88,7 @@ export const CAMP: VillagerSpec[] = [
       'The guards chase me out of the square at noon. I come back at one. We both know the routine.',
       'I’m going to be a ninja. Everyone already thinks we are, so it’s basically free.',
       'Oshizu says I mustn’t steal. I don’t steal. Things just come with me.',
-      'Hachi’s gang says the kappa in the moat eats Iga kids. Good. More fish for me.',
+      'Hachi’s gang says the kappa in the duck pond eats Iga kids. Good. More fish for me.',
     ],
     turtle: ['A TURTLE! Can I keep you? I’ll call you Lord Shell. You can sleep in our tent. There’s room. There’s lots of room now.'],
     shell: ['A rock! A good throwing rock!', '…It has legs. Never mind. Sorry, Lord Shell.'],
@@ -122,7 +122,7 @@ export const CAMP: VillagerSpec[] = [
     shell: ['A rock that hides when people come close. I know the feeling.'],
     night: ['Go to sleep, turtle. I’ll watch. It’s the least I can do. Literally the least.'],
     barks: {
-      guard: ['…', 'Quiet night. Quiet is good.', 'Who’s there? …Just the moat. It’s always just the moat.'],
+      guard: ['…', 'Quiet night. Quiet is good.', 'Who’s there? …Just the wind. It’s always just the wind.'],
       hammer: ['Chop.', 'Firewood. Honest work. First in years.'],
       sit: ['…'],
     },

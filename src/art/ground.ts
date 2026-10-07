@@ -9,21 +9,21 @@ import { CROP, idx, T, TILE, type World } from '../world/layout'
 type RGB = [number, number, number]
 const pal = (...hex: string[]): RGB[] => hex.map(hexRgb)
 
-const GRASS = pal('#2e4426', '#3e5a2e', '#4f6c36', '#618040', '#78964e')
-const DIRT = pal('#6a5236', '#7c6242', '#8c714c', '#9a7f58', '#ad9468')
+const GRASS = pal('#36702e', '#438a36', '#53a03e', '#66b449', '#86ca5c')
+const DIRT = pal('#80603c', '#96744a', '#a98557', '#b99665', '#cbab7c')
 const EARTH = pal('#a48a5e', '#b39a6a', '#c0a776', '#cbb383')
 const GRAVEL = pal('#9d968b', '#b3ac9f', '#c4bdaf', '#d6d0c2')
-const WATER = pal('#1d4f52', '#245e60', '#2d6f6e', '#41857f', '#7cb5a8', '#cde8e0')
+const WATER = pal('#1e6684', '#247896', '#2d8ca8', '#47a5bf', '#8fd2df', '#e4f8fa')
 const BANK = pal('#4d3b27', '#634c31', '#7a603e')
-const PADDY = pal('#4c7a77', '#598885', '#679893', '#8cb8ae')
+const PADDY = pal('#4a8a8a', '#58999a', '#67aaa8', '#90cbc2')
 const MUD = pal('#57472f', '#6c5a3c')
 const SOIL = pal('#4a2f1c', '#5c3b24', '#704b2e', '#835b39')
 const PLANK = pal('#5e3d22', '#86603a', '#9a7046', '#ad8152', '#4a2c17')
-const SEA = pal('#123f46', '#174e55', '#1e5f64', '#2f7a78', '#6fb0a6', '#e0f2ec')
-const SAND = pal('#bfa574', '#d0b886', '#ddc898', '#e9d9b0', '#a88e60')
+const SEA = pal('#175a80', '#1d6a92', '#257ea4', '#3f9bbc', '#86cde0', '#eefafc')
+const SAND = pal('#e0c68c', '#ead49e', '#f2e0b2', '#f8ecc8', '#cdb07a')
 const ROCK = pal('#463e37', '#5a5149', '#70665b', '#887d6e', '#a09481', '#2e2823')
-const STONE = pal('#5c5850', '#6e6a60', '#7c776c', '#837e72', '#8b8578', '#45413b')
-const GRIME = pal('#4a4232', '#3e4a30', '#55493a')
+const STONE = pal('#86817a', '#9a9488', '#a9a296', '#b3ac9f', '#bdb6a8', '#6c675f')
+const GRIME = pal('#6e6656', '#5e7048', '#857a68')
 
 const isRoadish = (t: number) => t === T.Road || t === T.Plaza || t === T.Gravel
 const isWetTile = (t: number) => t === T.Water || t === T.Sea || t === T.Moat
@@ -558,6 +558,6 @@ function paving(gx: number, gy: number): RGB {
   if (hash(gx, gy, 96) < 0.02) k = 1
   // Big soft stains of mud trodden in from the roads.
   const m = noise(gx / 14, gy / 14, 99)
-  if (m > 0.75 && hash(gx, gy, 100) < (m - 0.75) * 2.2) return GRIME[2]
+  if (m > 0.82 && hash(gx, gy, 100) < (m - 0.82) * 1.5) return GRIME[2]
   return STONE[k]
 }

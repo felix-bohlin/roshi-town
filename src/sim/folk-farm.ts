@@ -1,4 +1,4 @@
-// The farm families outside the west gate.
+// The farm families of Inaba, west along the road from Kumoi.
 
 import { asleep, chase, home, spot, wander, work, type VillagerSpec } from './types'
 
@@ -121,10 +121,10 @@ export const FARM: VillagerSpec[] = [
       asleep('20:00'),
     ],
     talk: [
-      'My brother is not a ninja. He fell in the moat twice. Today.',
+      'My brother is not a ninja. He fell in the duck pond twice. Today.',
       'Turtles live ten thousand years. I’ll still be your friend when I’m a hundred.',
       'I named the bossy hen Nobunaga. She pecks everybody and nobody stops her.',
-      'When I grow up I’m going to run the teahouse. And the castle. And Taro.',
+      'When I grow up I’m going to run the teahouse. And the manor. And Taro.',
     ],
     turtle: ['Hi turtle! Do you want to be my turtle?', 'Taro, look! No, MY turtle. I saw it first.'],
     shell: ['Knock knock! …Rude.'],

@@ -147,13 +147,13 @@ export function grime(c: HTMLCanvasElement, seed: number): void {
       const o = (y * W + x) * 4
       if (!d[o + 3]) continue
       // Blotchy grime: blocks of 3×3 share a value so it reads as stains, not noise.
-      let f = 0.9 + h(x >> 2, y / 3 | 0, 4) * 0.12 + (h(x, y, 5) < 0.04 ? -0.08 : 0)
-      if (streak && y >= s0 && y < s1) f *= 0.84 + ((y - s0) / (s1 - s0)) * 0.1
+      let f = 0.95 + h(x >> 2, y / 3 | 0, 4) * 0.06 + (h(x, y, 5) < 0.04 ? -0.04 : 0)
+      if (streak && y >= s0 && y < s1) f *= 0.93 + ((y - s0) / (s1 - s0)) * 0.05
       const up = bottom - y
       let mud = 0
-      if (up < 6) {
-        f *= 0.8 + up * 0.035
-        mud = (6 - up) * 0.05
+      if (up < 4) {
+        f *= 0.9 + up * 0.025
+        mud = (4 - up) * 0.03
       }
       d[o] = (d[o] * f) * (1 - mud) + 70 * mud
       d[o + 1] = (d[o + 1] * f) * (1 - mud) + 54 * mud

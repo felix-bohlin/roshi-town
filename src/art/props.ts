@@ -3,6 +3,7 @@
 // brazier, Sanpei's boat and nets, Benkei's trough and the torii gate.
 
 import { dot, ellipse, px, type Ctx } from '../engine/pixel'
+import { pick, rng } from '../engine/rng'
 import type { Prop } from '../world/layout'
 import { bambooSprite, bushSprite, irisSprite, reedsSprite, rockSprite, treeSprite } from './nature'
 import { build, type Sprite } from './sprite'
@@ -29,7 +30,9 @@ export function propArt(p: Prop, seed: number, fenceMask = 0): PropArt | null {
         ? `${p.kind}:${fenceMask}`
         : p.kind === 'torii'
           ? `torii:${p.w ?? 4}`
-          : ['bamboo', 'bush', 'hydrangea', 'iris', 'reeds', 'rock'].includes(p.kind)
+          : p.kind === 'flowers'
+            ? `flowers:${p.variant}:${seed % 3}`
+            : ['bamboo', 'bush', 'hydrangea', 'iris', 'reeds', 'rock'].includes(p.kind)
             ? `${p.kind}:${seed % 4}`
             : `${p.kind}:${p.variant ?? ''}`
   const hit = cache.get(key)
@@ -123,6 +126,8 @@ function make(p: Prop, seed: number, fenceMask: number): PropArt | null {
       return campfire()
     case 'bedroll':
       return bedroll(seed)
+    case 'flowers':
+      return flowers(p.variant ?? 'wild', seed)
   }
 }
 
@@ -1071,4 +1076,75 @@ function bedroll(seed: number): PropArt {
     { outline: INK },
   )
   return { sprite: { img, ax: 8, ay: 7 } }
+}
+
+const BLOOMS: Record<string, [string, string, string]> = {
+  red: ['#b8323a', '#e0504a', '#f8a08a'],
+  yellow: ['#c8901c', '#f0c430', '#fff0a0'],
+  violet: ['#5a3a9a', '#8a62d0', '#c8b0f4'],
+  white: ['#b8b4c8', '#f2f0ea', '#ffffff'],
+  pink: ['#c0507a', '#f08aac', '#fcd0dc'],
+}
+
+/** A flower bed (a row of blooms on a little mound), a potted plant, or wildflowers in the grass. */
+function flowers(variant: string, seed: number): PropArt {
+  const r = rng(seed * 31 + variant.length)
+  if (variant === 'pot') {
+    const img = build(
+      12,
+      16,
+      (ctx) => {
+        // A glazed pot with a clipped little pine or a morning glory on a frame.
+        px(ctx, 2, 10, 8, 5, '#8a4a32')
+        px(ctx, 1, 9, 10, 2, '#a85c3c')
+        px(ctx, 3, 11, 2, 3, '#c07048')
+        if (seed % 2) {
+          ellipse(ctx, 6, 6, 4.5, 3, '#2f6a3a')
+          ellipse(ctx, 5, 5, 3, 2, '#4f9a4a')
+          dot(ctx, 4, 4, '#7ac060')
+        } else {
+          px(ctx, 5, 1, 1, 8, '#8f6038')
+          for (let i = 0; i < 6; i++) ellipse(ctx, 3 + (i % 3) * 3, 2 + Math.floor(i / 2) * 2.5, 1.6, 1.4, '#3f8a42')
+          for (let i = 0; i < 3; i++) dot(ctx, 2 + i * 3, 2 + i * 2, i % 2 ? '#6a8ae8' : '#c86ad0')
+        }
+      },
+      { outline: INK },
+    )
+    return { sprite: { img, ax: 6, ay: 15 } }
+  }
+  if (variant === 'wild') {
+    const img = build(16, 10, (ctx) => {
+      for (let i = 0; i < 6; i++) {
+        const x = 1 + Math.floor(r() * 14)
+        const y = 3 + Math.floor(r() * 5)
+        px(ctx, x, y, 1, 3, '#4f8a3a')
+        const c = pick(r, ['#f2f0ea', '#f0c430', '#c8b0f4', '#f08aac'])
+        dot(ctx, x, y - 1, c)
+        dot(ctx, x + 1, y, c)
+      }
+    })
+    return { sprite: { img, ax: 8, ay: 9 } }
+  }
+  const [d, m, l] = BLOOMS[variant] ?? BLOOMS.red
+  const img = build(
+    16,
+    12,
+    (ctx) => {
+      // Dark soil edged with stones, leaves, then blooms.
+      px(ctx, 0, 8, 16, 4, '#5a3c26')
+      px(ctx, 0, 8, 16, 1, '#7a5636')
+      for (let x = 0; x < 16; x += 3) dot(ctx, x + 1, 11, '#a9a59e')
+      for (let i = 0; i < 9; i++) ellipse(ctx, 1.5 + i * 1.6, 7 - (i % 2), 1.6, 1.4, i % 2 ? '#3f7a3a' : '#5a9a48')
+      for (let i = 0; i < 6; i++) {
+        const x = 1 + Math.floor(r() * 13)
+        const y = 2 + Math.floor(r() * 4)
+        px(ctx, x, y, 2, 2, d)
+        dot(ctx, x, y, m)
+        dot(ctx, x + 1, y + 1, m)
+        dot(ctx, x, y - 1 < 0 ? y : y - 1, l)
+      }
+    },
+    { outline: INK },
+  )
+  return { sprite: { img, ax: 8, ay: 11 } }
 }

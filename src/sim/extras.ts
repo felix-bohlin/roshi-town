@@ -18,9 +18,8 @@ const NAMED: Record<string, string[]> = {
   approach: ['dangoFront', 'stairsBottom'],
   farm: ['farmRoad', 'gonbeiStep', 'oxGate', 'shrineFront', 'eastRoad', 'riverbank'],
   camp: ['campFireW', 'campFireS', 'campEdge', 'campN', 'farmRoad', 'westRoad'],
-  shiomachi: ['netMend', 'quayE', 'pierE'],
   inaba: ['farmRoad', 'gonbeiStep', 'kiyoStep', 'westRoad'],
-  hamana: ['beachWestSpot', 'southRoad', 'hamanaRoad'],
+  hamana: ['netMend', 'quayE', 'pierE', 'beachWestSpot', 'southRoad', 'joshojiFront'],
   okitsu: ['eastRoad', 'shrineFront', 'riverbank'],
 }
 
@@ -65,8 +64,8 @@ const ROLES: Role[] = [
       'Tofu, radishes, a fish for dinner, and my son, wherever he is. That’s my morning.',
       'Did you hear? Oume says the harbour master is hiding a boat. Oume says a lot of things. Usually true.',
       'A turtle in the street! My grandmother said it means a long life. My grandmother lived to forty.',
-      'Don’t go out of the West Gate after dark. Those Iga people have nothing. People with nothing… well. You hear things.',
-      'The city’s so big now. When I was a girl you could shout from the castle to the harbour. Now you need Oshio.',
+      'Don’t go past the west barrier after dark. Those Iga people have nothing. People with nothing… well. You hear things.',
+      'When I was a girl you could shout from the manor to the harbour. You still can. Oshio does it every morning.',
     ],
     barks: ['Fresh tofu, or yesterday’s at half price?', 'Taro! TARO! Oh, wrong Taro.', 'Mind the puddle.'],
   },
@@ -80,7 +79,7 @@ const ROLES: Role[] = [
     talk: [
       'I’ve been dyeing indigo for thirty years. My hands will be blue when they bury me. Very fashionable corpse.',
       'A good barrel holds water, sake, or a small samurai. I don’t ask what for.',
-      'The castle orders and never pays on time. The fishwives pay on time and never stop talking. I prefer the fishwives.',
+      'The manor orders and never pays on time. The fishwives pay on time and never stop talking. I prefer the fishwives.',
     ],
     barks: ['Mind the shavings.', 'Hm. Crooked. Again.'],
   },
@@ -101,7 +100,7 @@ const ROLES: Role[] = [
   {
     title: 'porter',
     names: ['A porter', 'A dock hand', 'A carrier'],
-    homes: ['harbour', 'crafts', 'shiomachi'],
+    homes: ['harbour', 'crafts', 'hamana'],
     haunts: ['harbour', 'harbour', 'town'],
     look: (r) => ({ ...commoner(r, 'short', 'hachimaki'), legs: '#f2c9a0' }),
     weight: 12,
@@ -129,8 +128,8 @@ const ROLES: Role[] = [
   {
     title: 'fisherman',
     names: ['A fisherman', 'An old fisherman', 'A net mender'],
-    homes: ['harbour', 'shiomachi'],
-    haunts: ['harbour', 'shiomachi', 'shiomachi', 'town'],
+    homes: ['harbour', 'hamana'],
+    haunts: ['harbour', 'hamana', 'hamana', 'town'],
     look: (r) => ({ ...commoner(r, pick(r, ['short', 'bald'] as Hair[]), pick(r, ['kasa', 'tenugui'] as Hat[]), ['creel']), legs: '#f2c9a0' }),
     weight: 8,
     talk: ['The sea gives, the sea takes, the fish market takes a cut.', 'Bonito running early this year. The sea’s in a good mood. Enjoy it while it lasts.'],
@@ -146,7 +145,7 @@ const ROLES: Role[] = [
       'One thousand and eighty-two steps. I counted one thousand and eighty-three. Either I’m wrong or the temple is growing.',
       'I walked from Owari to pray for my husband’s back. Now my back needs praying for.',
       'They say if you rub the turtle’s shell you get ten thousand years. …May I? No? Fair.',
-      'The view from the halfway teahouse! The whole city, the sea, the islands. Worth every step. Most of the steps.',
+      'The view from the halfway teahouse! The whole valley, every village, the sea. Worth every step. Most of the steps.',
     ],
     barks: ['*huff* …*huff*', 'Namu Amida Butsu…', 'Only five hundred more. Only five hundred more.'],
   },
@@ -157,7 +156,7 @@ const ROLES: Role[] = [
     haunts: ['samurai', 'samurai', 'town', 'temple'],
     look: (r) => ({ ...commoner(r, 'topknot', undefined, ['swords', 'hakama']), robe: pick(r, ['#3a4a6a', '#4a3a3a', '#2f3f3f']), robeShade: '#2a2a33' }),
     weight: 8,
-    talk: ['I carry two swords, a fan and my lord’s laundry list. Guess which one I use most.', 'A turtle. In the samurai quarter. Do you have an appointment?'],
+    talk: ['I carry two swords, a fan and my lord’s laundry list. Guess which one I use most.', 'A turtle. On the samurai lane. Do you have an appointment?'],
   },
   {
     title: 'Oda foot soldier',
@@ -190,15 +189,15 @@ const ROLES: Role[] = [
   {
     title: 'gambler',
     names: ['A gambler', 'A dice man', 'A man with a scar and a smile'],
-    homes: ['inns', 'shiomachi'],
-    haunts: ['inns', 'shiomachi', 'harbour'],
+    homes: ['inns', 'hamana'],
+    haunts: ['inns', 'hamana', 'harbour'],
     look: (r) => ({ ...commoner(r, 'short', undefined), robe: pick(r, ['#5a2a2a', '#2a2a2a', '#4a3a5a']), robeShade: '#1e1a1e' }),
     weight: 4,
     nightOwl: true,
     talk: [
       'Odd or even, turtle? …You don’t have money. You don’t have pockets. You’re no fun.',
       'The dice are honest. The men are not. I prefer the dice.',
-      'I owe the brewer, the brewer owes the castle, the castle owes Nobunaga. Everybody owes somebody. Relax.',
+      'I owe the brewer, the brewer owes the manor, the manor owes Nobunaga. Everybody owes somebody. Relax.',
     ],
     barks: ['Cho or han?', 'Lucky turtle? Let me rub— no? Fine.'],
   },
@@ -220,7 +219,7 @@ const ROLES: Role[] = [
     weight: 4,
     nightOwl: true,
     talk: [
-      'I play at the canal teahouses from dusk till the lanterns gutter. The song about the willow and the moon makes the samurai cry. I charge extra for that one.',
+      'I play at the teahouses by the pond from dusk till the lanterns gutter. The song about the willow and the moon makes the samurai cry. I charge extra for that one.',
       'A turtle! Sit, sit. I know a song about a turtle who carried a fisherman to the palace under the sea. It ends badly. Most good songs do.',
     ],
     barks: ['♪ …the willow bends, the moon does not… ♪', '*tuning the shamisen*'],
@@ -243,9 +242,9 @@ const ROLES: Role[] = [
     look: (r) => ({ ...commoner(r, 'grayBun'), extras: ['beard'] }),
     weight: 7,
     talk: [
-      'In my day the moat was full of eels. Now it’s full of ducks. Progress.',
+      'In my day the duck pond was full of eels. Now it’s full of ducks. Progress.',
       'I climb to the temple every week to remind the Buddha I’m still here. Takes me all morning. He waits.',
-      'I’ve seen four lords take that castle. Every one said he’d be the last. Two of them were right, in a way.',
+      'I’ve seen four lords take that manor. Every one said he’d be the last. Two of them were right, in a way.',
     ],
   },
   {
@@ -292,8 +291,8 @@ const ROLES: Role[] = [
     weight: 10,
     talk: [
       'Kumoi? Too many people, too many stairs, too many samurai. We go once a month to sell and once a year to pray.',
-      'The city folk think we’re simple. We think they’re loud. We’re both right.',
-      'A turtle all the way out here? Did the city get too much for you too?',
+      'The Kumoi folk think we’re simple. We think they’re loud. We’re both right.',
+      'A turtle all the way out here? Did Kumoi get too much for you too?',
     ],
     barks: ['Morning!', 'Rain later, my knee says.'],
   },
@@ -304,12 +303,12 @@ const ROLES: Role[] = [
     haunts: ['farm', 'farm', 'camp', 'town'],
     look: (r) => ({ ...commoner(r, pick(r, ['short', 'bun'] as Hair[]), 'kasa'), legs: '#f2c9a0' }),
     weight: 5,
-    talk: ['Rice in the paddies, crows in the rice, and the steward in the storehouse counting it all.', 'The city eats everything we grow and asks why it’s muddy.'],
+    talk: ['Rice in the paddies, crows in the rice, and the steward in the storehouse counting it all.', 'Kumoi eats everything we grow and asks why it’s muddy.'],
   },
 ]
 
 const NO_SHELL = ['Huh. A rock with a scarf.', 'Is that a rock? …Is that rock looking at me?', 'Nice rock.', 'KAPPA! …No. A rock. Sorry, rock.']
-const TURTLE = ['A turtle! In town!', 'Oh! Mind the turtle!', 'Look, a turtle! Lucky!', 'Is that… a turtle in a scarf?', 'Is that a kappa? Keep it away from the moat!']
+const TURTLE = ['A turtle! In town!', 'Oh! Mind the turtle!', 'Look, a turtle! Lucky!', 'Is that… a turtle in a scarf?', 'Is that a kappa? Keep it away from the pond!']
 
 /** Pick a home door for a role: a fixed door, or a house in one of its neighbourhoods. */
 function homeFor(world: World, r: Rng, role: Role): string {
@@ -377,7 +376,7 @@ function stallholders(world: World, r: Rng): VillagerSpec[] {
   })
 }
 
-export function makeExtras(world: World, count = 155): VillagerSpec[] {
+export function makeExtras(world: World, count = 75): VillagerSpec[] {
   const r = rng(1600)
   const total = ROLES.reduce((a, b) => a + b.weight, 0)
   const out: VillagerSpec[] = stallholders(world, r)
