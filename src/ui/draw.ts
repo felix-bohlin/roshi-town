@@ -1,4 +1,4 @@
-// Shared UI drawing bits: palette (matches the chess replay), fonts, text wrapping, rounded boxes.
+// Shared UI drawing bits: palette, fonts, text wrapping, rounded boxes.
 
 import type { Ctx } from '../engine/pixel'
 

@@ -46,7 +46,7 @@ export interface Entry {
 
 export type Hair = 'topknot' | 'bun' | 'grayBun' | 'kidBoy' | 'kidGirl' | 'bald' | 'short'
 export type Hat = 'kasa' | 'jingasa' | 'tokin' | 'hachimaki' | 'tenugui'
-export type Extra =
+type Extra =
   | 'armor'
   | 'apron'
   | 'pompoms'
@@ -97,7 +97,7 @@ export interface VillagerSpec {
   extra?: boolean
 }
 
-export const inside = (lit = true): Doing => ({ kind: 'inside', lit })
+const inside = (lit = true): Doing => ({ kind: 'inside', lit })
 export const spot = (at: string, pose: Pose = 'stand'): Doing => ({ kind: 'spot', at, pose })
 export const work = (area: string, pose: Pose): Doing => ({ kind: 'area', area, pose, style: 'work' })
 export const wander = (area: string, pose: Pose = 'stand'): Doing => ({ kind: 'area', area, pose, style: 'wander' })
@@ -105,6 +105,3 @@ export const chase = (area: string): Doing => ({ kind: 'area', area, pose: 'play
 export const patrol = (route: string[], pose?: Pose, stop?: Pose, wait?: number): Doing => ({ kind: 'patrol', route, pose, stop, wait })
 export const asleep = (at = '00:00'): Entry => ({ at, label: 'asleep', doing: inside(false) })
 export const home = (at: string, label = 'at home'): Entry => ({ at, label, doing: inside(true) })
-
-/** Generic reactions when a villager has none of their own. */
-export const GENERIC_SHELL = ['A rock?', 'That rock is breathing.']

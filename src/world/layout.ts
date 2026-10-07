@@ -2,8 +2,8 @@
 // scripts/check.ts can validate the town in node.
 
 export const TILE = 16
-export const MAP_W = 144
-export const MAP_H = 112
+const MAP_W = 144
+const MAP_H = 112
 
 export const T = {
   Grass: 0,
@@ -47,7 +47,7 @@ export interface Area {
   only?: Tile[]
 }
 
-export type BuildingKind =
+type BuildingKind =
   | 'minka'
   | 'minkaOld'
   | 'cottage'
@@ -104,7 +104,7 @@ export interface Building {
 
 export type TreeKind = 'pine' | 'blackpine' | 'cedar' | 'broad' | 'maple' | 'willow' | 'persimmon' | 'sacred' | 'ginkgo'
 
-export type PropKind =
+type PropKind =
   | 'tree'
   | 'bamboo'
   | 'bush'

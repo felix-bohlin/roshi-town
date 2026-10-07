@@ -51,7 +51,7 @@ export function makeGrid(world: World): Grid {
 }
 
 /** Step cost for villagers: roads are cheap, grass costs a bit, crops and paddies a lot. */
-export function npcCost(world: World, grid: Grid): (i: number) => number {
+function npcCost(world: World, grid: Grid): (i: number) => number {
   return (i: number) => {
     if (grid.solidNpc[i]) return Infinity
     const t = world.tiles[i]

@@ -41,10 +41,6 @@ export function darknessOf([r, g, b]: RGB): number {
   return Math.max(0, 1 - (r + g + b) / (DAY[0] + DAY[1] + DAY[2]))
 }
 
-export function darknessAt(minutes: number): number {
-  return darknessOf(ambientAt(minutes))
-}
-
 const texCache = new Map<string, HTMLCanvasElement>()
 
 function lightTexture(radius: number, color: string): HTMLCanvasElement {

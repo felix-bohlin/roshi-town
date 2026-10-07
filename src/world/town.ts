@@ -45,12 +45,12 @@ export function buildWorld(): World {
 }
 
 /** Coastline: first sea row per column. */
-export function coastY(x: number): number {
+function coastY(x: number): number {
   if (x >= 18 && x <= 111) return 98
   return 97 + Math.round(1.3 * Math.sin(x / 6.5) + 0.8 * Math.sin(x / 2.7 + 1))
 }
 
-export function riverX(y: number): number {
+function riverX(y: number): number {
   return 127 + Math.round(2 * Math.sin(y / 9) + Math.sin(y / 4 + 2))
 }
 

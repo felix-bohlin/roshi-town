@@ -5,7 +5,7 @@ import type { Screen } from '../engine/screen'
 import { SPEEDS, type Clock } from '../sim/clock'
 import { FONT_BODY, FONT_NUM, FONT_TITLE, PALETTE, panel, roundRect, wrap } from './draw'
 
-export type Action = 'map' | 'help' | 'music' | 'speed'
+type Action = 'map' | 'help' | 'music' | 'speed'
 export interface Hit {
   x: number
   y: number

@@ -1,6 +1,6 @@
 # Shell of Iga — town prototype
 
-A 2D open-world prototype set in the Chezz: Total War world. You are Kame, Master Roshi's errand turtle,
+A 2D open-world prototype. You are Kame, Master Roshi's errand turtle,
 sent from his island to the walled port town of Kumoi (Ise Province, early summer 1582) to fetch "the
 good sake". There is no quest logic yet: it's a town to walk around in and get a feel for.
 
@@ -9,9 +9,8 @@ refugees camped outside the walls, a burnt-out house nobody talks about, contrac
 the notice board, and Roshi still mostly worried about sake prices.
 
 ```bash
-cd game
 pnpm install
-pnpm dev        # http://localhost:5174
+pnpm dev        # http://localhost:5173
 pnpm check      # typecheck + layout check (every door, spot and schedule target reachable)
 pnpm build
 ```
@@ -45,8 +44,8 @@ H help. On touch screens: drag to walk, tap to talk, double-tap to hide.
 ## How it's built
 
 TypeScript + Canvas 2D + Vite, no runtime dependencies. All art is drawn by code into small canvases at
-startup, then weathered (grime, rain streaks, mud splashes) and muted. Roshi's sprite and the koto music
-engine are copied from `frontend/`.
+startup, then weathered (grime, rain streaks, mud splashes) and muted. Music and sound are synthesized
+with Web Audio; there are no asset files.
 
 | Path | What |
 |---|---|

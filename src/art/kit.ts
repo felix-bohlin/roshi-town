@@ -24,8 +24,8 @@ export interface BuildingArt {
 }
 
 export const INK = '#1a1220'
-export const TH = ['#5a3e1e', '#7c5c2c', '#9e7c3c', '#bc9850', '#d8b86c']
-export const TH_OLD = ['#4a3a20', '#665230', '#82703e', '#9c8a50', '#b4a266']
+const TH = ['#5a3e1e', '#7c5c2c', '#9e7c3c', '#bc9850', '#d8b86c']
+const TH_OLD = ['#4a3a20', '#665230', '#82703e', '#9c8a50', '#b4a266']
 export const RF = ['#2c323e', '#3c4453', '#4f5a6c', '#67748c', '#8792aa']
 export const DARKWOOD = '#3d2615'
 export const WOODM = '#6a4426'

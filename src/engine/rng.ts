@@ -39,7 +39,3 @@ export function noise(x: number, y: number, seed = 0): number {
 export function pick<T>(r: Rng, items: readonly T[]): T {
   return items[Math.floor(r() * items.length)]
 }
-
-export function range(r: Rng, lo: number, hi: number): number {
-  return lo + r() * (hi - lo)
-}

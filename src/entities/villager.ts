@@ -12,7 +12,7 @@ import { idx, T, type Dir, type Pt } from '../world/layout'
 import type { Game } from '../game'
 
 /** The latest entry whose time has passed; before the first one, yesterday's last. */
-export function currentEntry(spec: VillagerSpec, minutes: number, market: boolean): Entry {
+function currentEntry(spec: VillagerSpec, minutes: number, market: boolean): Entry {
   const list = spec.schedule.filter((e) => !e.days || market)
   let cur: Entry | null = null
   let latest: Entry = list[0]

@@ -6,7 +6,7 @@ import { canvas, type Ctx } from './engine/pixel'
 import { hash, noise, rng } from './engine/rng'
 
 export type WeatherMode = 'auto' | 'clear' | 'rain' | 'storm' | 'mist'
-export const WEATHER_MODES: WeatherMode[] = ['auto', 'rain', 'storm', 'mist', 'clear']
+const WEATHER_MODES: WeatherMode[] = ['auto', 'rain', 'storm', 'mist', 'clear']
 
 interface Plan {
   /** Rain spells: [from, to) minutes, intensity. */

@@ -54,7 +54,7 @@ export function hexRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
-export function rgbHex(r: number, g: number, b: number): string {
+function rgbHex(r: number, g: number, b: number): string {
   const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')
   return `#${c(r)}${c(g)}${c(b)}`
 }
@@ -99,23 +99,6 @@ export function flipX(src: HTMLCanvasElement): HTMLCanvasElement {
   ctx.scale(-1, 1)
   ctx.drawImage(src, 0, 0)
   return c
-}
-
-/** Bounding box of opaque pixels — used for occlusion fades and click targets. */
-export function opaqueBounds(src: HTMLCanvasElement): { x: number; y: number; w: number; h: number } {
-  const ctx = src.getContext('2d', { willReadFrequently: true })!
-  const { width: w, height: h } = src
-  const d = ctx.getImageData(0, 0, w, h).data
-  let x0 = w, y0 = h, x1 = -1, y1 = -1
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++)
-      if (d[(y * w + x) * 4 + 3] > 0) {
-        if (x < x0) x0 = x
-        if (y < y0) y0 = y
-        if (x > x1) x1 = x
-        if (y > y1) y1 = y
-      }
-  return x1 < 0 ? { x: 0, y: 0, w: 0, h: 0 } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
 }
 
 /** Pull colours toward a warm grey (k = 0 untouched … 1 sepia-grey). Weathers bright procedural art. */
