@@ -10,7 +10,21 @@ import type { Entry, VillagerSpec } from '../sim/types'
 import { areaTiles, findPath, tileFeet, tileOf } from '../world/grid'
 import { idx, T, type Dir, type Pt } from '../world/layout'
 import type { Game } from '../game'
+import type { Item } from '../mischief/items'
 
+/** A moment of mischief that overrides the timetable: chasing a thief, fleeing a kappa, lying in the mud. */
+interface Reaction {
+  kind: 'chase' | 'flee' | 'fallen' | 'search' | 'yelp'
+  t: number
+  repath: number
+  item?: Item
+  from?: Pt
+}
+
+const GIVE_UP = ['Bah! Keep it, you… you reptile.', 'I’m too old to chase turtles.', '*pant* *pant* …It’s FAST for a turtle.', 'Fine! FINE! I hope it gives you indigestion!']
+const SEARCH = ['…Where did it go? There was a turtle. I SAW a turtle.', 'Just a rock. Just a… rock.', 'Hm. That rock looks guilty.']
+const SNATCH = ['Got it! Shoo, turtle! SHOO!', 'Mine, thank you. Thief.', 'HA! Not today, shell-brain.']
+const SHORE = ['Come back here, you… you KAPPA!', 'I am NOT swimming after a turtle.', 'Fine, keep it! Enjoy it in the moat!']
 /** The latest entry whose time has passed; before the first one, yesterday's last. */
 function currentEntry(spec: VillagerSpec, minutes: number, market: boolean): Entry {
   const list = spec.schedule.filter((e) => !e.days || market)
@@ -50,6 +64,7 @@ export class Villager {
   private r: Rng
   private talkIdx = 0
   private pendingSay: { text: string; shout: boolean } | null = null
+  react: Reaction | null = null
 
   constructor(spec: VillagerSpec, g: Game) {
     this.spec = spec
@@ -105,6 +120,13 @@ export class Villager {
       this.moving = false
       this.facePoint(g.player.x, g.player.y)
       return
+    }
+    if (this.react) {
+      if (this.inside) this.react = null
+      else {
+        this.updateReact(g, simDt > 0 ? dt : 0)
+        return
+      }
     }
     const d = (this.entry ?? e).doing
     this.status = (this.entry ?? e).label
@@ -287,6 +309,153 @@ export class Villager {
       moved = true
     }
     return moved || this.path.length > 0
+  }
+
+  // ---------- mischief reactions ----------
+
+  get busy(): boolean {
+    return !!this.react
+  }
+
+  /** Run after the turtle (or to where it dropped the thing). */
+  chase(g: Game, item: Item, line: string): void {
+    if (this.inside) return
+    this.react = { kind: 'chase', t: 0, repath: 0, item }
+    this.path = []
+    g.speech.say(this, line, 3, true)
+  }
+
+  flee(g: Game, from: Pt, line: string): void {
+    if (this.inside) return
+    this.react = { kind: 'flee', t: 0, repath: 0, from }
+    this.path = []
+    g.speech.say(this, line, 3, true)
+  }
+
+  fall(g: Game, line: string): void {
+    this.react = { kind: 'fallen', t: 0, repath: 0 }
+    this.path = []
+    this.moving = false
+    g.speech.floater(this.x, this.y - 20, '*THUD*', '#f2d04a')
+    g.speech.say(this, line, 3)
+  }
+
+  yelp(g: Game, line: string): void {
+    this.react = { kind: 'yelp', t: 0, repath: 0 }
+    this.moving = false
+    g.speech.say(this, line, 2.5)
+  }
+
+  private updateReact(g: Game, dt: number): void {
+    const r = this.react!
+    r.t += dt
+    const p = g.player
+    switch (r.kind) {
+      case 'fallen':
+        this.moving = false
+        this.pose = 'sit'
+        if (r.t > 1.8) this.endReact(g)
+        return
+      case 'yelp':
+        this.moving = false
+        this.pose = 'stand'
+        this.facePoint(p.x, p.y)
+        if (r.t > 0.9) this.endReact(g)
+        return
+      case 'search':
+        this.moving = false
+        this.pose = 'stand'
+        if (r.t > 2.6) {
+          g.speech.say(this, pick(this.r, SEARCH), 3)
+          this.endReact(g)
+        }
+        return
+      case 'flee': {
+        r.repath -= dt
+        if (r.repath <= 0) {
+          r.repath = 99
+          const away = this.fleeTarget(g, r.from ?? p)
+          if (away) this.pathTo(g, away)
+        }
+        this.moving = this.move(this.spec.speed * 1.6 * dt)
+        if (r.t > 2.8 || !this.moving) this.endReact(g)
+        return
+      }
+      case 'chase': {
+        const item = r.item!
+        const carried = g.mischief.carried === item
+        if (item.gone || (!carried && item.atHome)) {
+          this.endReact(g)
+          return
+        }
+        const tx = carried ? p.x : item.x
+        const ty = carried ? p.y : item.y
+        const d = Math.hypot(tx - this.x, ty - this.y)
+        if (carried && p.hidden && d < 60) {
+          this.react = { kind: 'search', t: 0, repath: 0 }
+          this.moving = false
+          g.speech.say(this, '…Huh? Where did that turtle go?', 2.5)
+          g.mischief.report({ kind: 'lost', who: this.id })
+          return
+        }
+        if (d < 11) {
+          if (carried) g.mischief.snatch(item)
+          else item.reset()
+          g.speech.say(this, pick(this.r, SNATCH), 3)
+          this.endReact(g)
+          return
+        }
+        if (r.t > 25 || d > 320) {
+          g.speech.say(this, pick(this.r, GIVE_UP), 3)
+          this.endReact(g)
+          return
+        }
+        r.repath -= dt
+        if (r.repath <= 0) {
+          r.repath = 0.5
+          if (!this.pathTo(g, tileOf(tx, ty))) {
+            g.speech.say(this, pick(this.r, SHORE), 3)
+            this.endReact(g)
+            return
+          }
+        }
+        this.moving = this.move(this.spec.speed * 1.75 * dt)
+        if (!this.moving) this.facePoint(tx, ty)
+        return
+      }
+    }
+  }
+
+  private endReact(g: Game): void {
+    this.react = null
+    this.moving = false
+    this.phase = 'go'
+    this.path = []
+    this.goal = null
+    const d = this.entry?.doing
+    if (d?.kind === 'area') this.nextAreaTarget(g, d.area, d.style, d.pose)
+  }
+
+  /** A path without teleporting when there isn't one (the turtle might be in the water). */
+  private pathTo(g: Game, t: Pt): boolean {
+    const path = findPath(g.world, g.grid, this.tile, t)
+    if (!path) return false
+    this.path = path.map(tileFeet)
+    return true
+  }
+
+  private fleeTarget(g: Game, from: Pt): Pt | null {
+    const dx = this.x - from.x
+    const dy = this.y - from.y
+    const len = Math.hypot(dx, dy) || 1
+    const here = this.tile
+    for (const k of [7, 5, 4, 3, 2]) {
+      const tx = Math.round(here.x + (dx / len) * k)
+      const ty = Math.round(here.y + (dy / len) * k)
+      if (tx < 0 || ty < 0 || tx >= g.world.w || ty >= g.world.h) continue
+      if (!g.grid.solidNpc[idx(tx, ty)]) return { x: tx, y: ty }
+    }
+    return null
   }
 
   private facePoint(px: number, py: number): void {

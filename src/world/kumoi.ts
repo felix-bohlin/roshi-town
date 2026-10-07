@@ -451,7 +451,7 @@ function squareProps(B: Builder, tea: Building, watch: Building): void {
   ]
   for (const [dx, names] of benches) {
     const p = nearestFree(B, { x: tea.door.x + dx, y: tea.door.y + 2 }, (x, y) => B.get(x, y) === T.Stone && B.get(x + 1, y) === T.Stone && !B.isTaken(x + 1, y))
-    B.prop({ kind: 'bench', x: p.x, y: p.y, w: 2, variant: dx < 0 ? 'parasol' : undefined, solid: true, npcSolid: false, name: 'Bench', text: dx < 0 ? 'A teahouse bench under a red parasol. The red felt is warm from the sun.' : 'A teahouse bench. Someone left a dango skewer. Heisuke, probably.' })
+    B.prop({ kind: 'bench', x: p.x, y: p.y, w: 2, variant: dx < 0 ? 'parasol' : undefined, solid: false, name: 'Bench', text: dx < 0 ? 'A teahouse bench under a red parasol. The red felt is warm from the sun.' : 'A teahouse bench. Someone left a dango skewer. Heisuke, probably.' })
     B.place(names[0], p.x, p.y, 'down')
     B.place(names[1], p.x + 1, p.y, 'down')
   }
@@ -459,7 +459,7 @@ function squareProps(B: Builder, tea: Building, watch: Building): void {
   const nob = nearestFree(B, { x: tea.door.x + 6, y: tea.door.y + 1 }, (x, y) => B.get(x, y) === T.Stone)
   B.prop({ kind: 'nobori', x: nob.x, y: nob.y, solid: true, name: 'Banner', text: 'A banner: 茶 (tea). Flapping like it’s proud of it.' })
   const bench = nearestFree(B, { x: S.x - 12, y: S.y + 7 }, (x, y) => B.get(x, y) === T.Stone && B.get(x + 1, y) === T.Stone && !B.isTaken(x + 1, y))
-  B.prop({ kind: 'bench', x: bench.x, y: bench.y, w: 2, solid: true, npcSolid: false, name: 'Bench', text: 'A stone bench, worn smooth by a hundred years of gossip.' })
+  B.prop({ kind: 'bench', x: bench.x, y: bench.y, w: 2, solid: false, name: 'Bench', text: 'A stone bench, worn smooth by a hundred years of gossip.' })
   B.place('squareBench1', bench.x, bench.y, 'down')
   B.place('squareBench2', bench.x + 1, bench.y, 'down')
   const well = nearestFree(B, { x: S.x + 12, y: S.y + 6 }, (x, y) => B.get(x, y) === T.Stone && B.get(x, y + 1) === T.Stone)

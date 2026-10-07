@@ -5,7 +5,7 @@ import type { Screen } from '../engine/screen'
 import { SPEEDS, type Clock } from '../sim/clock'
 import { FONT_BODY, FONT_NUM, FONT_TITLE, PALETTE, panel, roundRect, wrap } from './draw'
 
-type Action = 'map' | 'help' | 'music' | 'speed'
+type Action = 'map' | 'help' | 'music' | 'speed' | 'todo'
 export interface Hit {
   x: number
   y: number
@@ -16,7 +16,7 @@ export interface Hit {
 
 // ---------- clock + buttons ----------
 
-export function drawHud(screen: Screen, clock: Clock, musicOn: boolean, hits: Hit[]): void {
+export function drawHud(screen: Screen, clock: Clock, musicOn: boolean, hits: Hit[], todo = ''): void {
   const ctx = screen.dctx
   const u = (n: number) => screen.u(n)
   const W = u(178)
@@ -64,10 +64,12 @@ export function drawHud(screen: Screen, clock: Clock, musicOn: boolean, hits: Hi
     ['map', 'MAP'],
     ['help', '?'],
     ['music', musicOn ? '♪ ON' : '♪ OFF'],
+    ['todo', todo],
   ]
   let bx = u(10)
   ctx.font = `${u(11)}px ${FONT_TITLE}`
   for (const [action, label] of labels) {
+    if (!label) continue
     const bw = ctx.measureText(label).width + u(18)
     const bh = u(26)
     panel(ctx, bx, u(10), bw, bh, u)
@@ -258,8 +260,8 @@ export function drawTitle(screen: Screen, roshi: HTMLCanvasElement, t: number): 
   const bw = narrow ? screen.W - u(32) : Math.min(u(420), screen.W - bx - u(20))
   const text = [
     'Hohoho! Turtle! Swim over to Kumoi and fetch me a jug of the GOOD sake.',
-    'Kurozaemon will give it to you. Probably. Mention my name. Actually, don’t mention my name.',
-    'And don’t dawdle! …Oh, who am I kidding.',
+    'Kurozaemon won’t give it to you. Steal it. You’re a turtle: nobody suspects a turtle.',
+    'And while you’re in town, have some fun. I wrote you a list. (Tab.) Hohoho!',
   ]
   ctx.font = `${u(16)}px ${FONT_BODY}`
   const lines = text.flatMap((p, i) => [...wrap(ctx, p, bw - u(28)), ...(i < text.length - 1 ? [''] : [])])
@@ -295,23 +297,20 @@ const HELP: [string, string][] = [
   ['P', 'pause time'],
   ['M', 'village map with who’s where'],
   ['R', 'weather: as it comes / rain / storm / mist / clear'],
+  ['F', 'snap: grab a thing, drop it, eat it, or bite a toe'],
+  ['Tab', 'the to-do list (touch: the TO DO button)'],
   ['N', 'sound on / off'],
   ['G', 'debug view: collisions, paths, plans'],
 ]
 
 const TRY = [
-  'Swim from the island to the harbour or the east beach. Turtles swim faster than they walk.',
-  'Climb the thousand steps to Kōun-ji: the torii tunnel, the waterfall, the halfway teahouse, and deer that bow at the top.',
-  'Follow Gonbei to the paddies outside the West Gate and watch the crows undo his work.',
-  'Hide in your shell next to someone. Kiyo is not fooled.',
-  'Swim the moat all the way round the town walls.',
-  'At night, follow Seiroku the fire watchman on his rounds. Hi no y\u014djin!',
-  'Every third day is market day: Jinbei walks in through the West Gate.',
-  'Read the contracts on the notice board in the square. The pay is terrible.',
-  'Walk out of the West Gate to the refugee camp. Nobody there laughs at turtles.',
+  'Steal Sanpei’s left sandal from outside his hut in Shiomachi. He will notice. He always notices.',
+  'Hide in your shell (Space) when someone chases you. You are a rock now. Rocks are innocent.',
+  'Hide where people walk, and wait. Or where people sit, and wait longer.',
+  'Climb out of the canal right next to somebody.',
+  'Swim from the island to the harbour. Turtles swim faster than they walk.',
+  'Climb the thousand steps to Kōun-ji: the torii tunnel, the waterfall, the halfway teahouse.',
   'At dusk, walk the Willow Canal. Lanterns, shamisen, and a gambler who wants to rub your shell.',
-  'Sit in the market on the town square at noon and count the stallholders shouting at each other.',
-  'Press R for a storm and stand in the square. Count the seconds after the flash.',
 ]
 
 export function drawHelp(screen: Screen): void {

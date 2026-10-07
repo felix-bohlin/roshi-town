@@ -512,9 +512,9 @@ function water(
   const v = noise(gx / 13, gy / 9, 9)
   let k = v < 0.4 ? 1 : 2
   if (kind === 'sea') {
-    // Deeper further out; long swells.
-    const swell = Math.sin(gy / 5 + Math.sin(gx / 23) * 2)
-    k = swell > 0.75 ? 2 : v < 0.45 ? 0 : 1
+    // Soft watercolour patches: big slow blotches with a little grain, darker away from shore.
+    const w = noise(gx / 26, gy / 20, 9) * 0.75 + noise(gx / 7, gy / 7, 19) * 0.25 - Math.min(0.15, (d - 5) * 0.01)
+    k = w < 0.36 ? 0 : w < 0.62 ? 1 : 2
   }
   if (hash(gx >> 2, gy, 10) > 0.975) k = 3
   if (hash(gx, gy, 11) < 0.02) k = 0
